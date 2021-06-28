@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.fran.question.dao.IFranQuestionDAO">
+
+	<sql id="searchFrag">	
+		
+			<trim prefix="WHERE" prefixOverrides="AND" suffixOverrides="OR"> 
+			
+			
+			QUES_DEL_AT='N' 
+			<trim prefix="AND (" suffix=")">
+			<if test="detailSearch.head_code!=null and @org.apache.commons.lang3.StringUtils@isNotBlank(detailSearch.head_code)">
+				HEAD_CODE = #{detailSearch.head_code} 
+			</if>
+				<if test="searchMap!=null and @org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.searchType)">
+							INSTR(QUES_CL_CODE, #{searchMap.searchType}) > 0
+							
+				</if>
+			</trim>
+			<trim prefix="AND (" suffix=")" prefixOverrides="AND">
+				<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.minDate)">
+					AND QUES_DT >= TO_DATE(#{searchMap.minDate}, 'YYYY-MM-DD') 
+				</if>
+				<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.maxDate)">
+					<![CDATA[
+					AND QUES_DT <= TO_DATE(#{searchMap.maxDate}, 'YYYY-MM-DD')
+					]]> 
+				</if>
+			</trim>	
+
+	</trim>
+	</sql>
+	<select id="selectQuestionsList" parameterType="PagingVO" resultType="FranQuestionVO">
+		SELECT B.*
+		FROM (
+    SELECT A.*, ROWNUM RNUM
+			FROM(
+				SELECT QUES_SEQ
+                , HEAD_CODE
+				, QUES_TITLE                 
+				, QUES_CN
+				, QUES_WRITER
+				, TO_CHAR(QUES_DT,'YYYY-MM-DD HH24:MM:SS') QUES_DT    
+				, QUES_EMAIL
+                , FN_CODENAME('QUES_CL_CODE', QUES_CL_CODE) QUES_CL_CODE
+				, FN_CODENAME('QUES_STTUS_CODE', QUES_STTUS_CODE) QUES_STTUS_CODE
+                , QUES_DEL_AT  
+                 
+				 FROM TB_QUESTIONS
+				 <include refid="searchFrag"/> 		
+			 	
+		
+			     AND QUES_WRITER=#{detailSearch.ques_writer}	
+				ORDER BY QUES_SEQ DESC)A
+                )B    
+             <![CDATA[            
+          WHERE         
+            RNUM >= #{startRow} AND RNUM<= #{endRow}
+             ]]>		
+	</select>
+	
+	<select id="selectQuestionCount" parameterType="PagingVO" resultType="int">
+		SELECT COUNT(*)
+		FROM TB_QUESTIONS
+		<include refid="searchFrag"/>
+		
+		AND QUES_WRITER=#{detailSearch.ques_writer}
+	</select>
+	
+		<resultMap type="ComCodeGrpVO" id="comCodeGrpMap" autoMapping="true">
+		<id property="com_code_grp" column="COM_CODE_GRP"/>
+		<collection property="comCodeList" ofType="ComCodeVO" autoMapping="true">
+			<id property="com_code" column="COM_CODE"/>
+		</collection>
+	</resultMap>
+	<select id="selectCodeList" parameterType="String" resultMap="comCodeGrpMap">
+		SELECT *
+		FROM TB_COMCODE_GRP INNER JOIN TB_COMCODE ON (TB_COMCODE_GRP.COM_CODE_GRP = TB_COMCODE.COM_CODE_GRP)
+		WHERE TB_COMCODE_GRP.USE_AT = 'Y' AND TB_COMCODE.USE_AT = 'Y'
+			  AND TB_COMCODE_GRP.COM_CODE_GRP = #{code}
+	</select>
+	
+	
+	<insert id="insertQuestion" parameterType="FranQuestionVO">
+ 	<selectKey resultType="int" order="BEFORE"  keyProperty="ques_seq">
+		  SELECT NVL(MAX(QUES_SEQ), 0) + 1
+		FROM TB_QUESTIONS
+	</selectKey> 	
+		INSERT INTO 	
+				TB_QUESTIONS			
+		 (
+		    QUES_SEQ		   
+		    ,HEAD_CODE
+		    ,QUES_TITLE
+		    ,QUES_CN  
+		    ,QUES_WRITER		
+	  		 ,QUES_DT 
+	  		 ,QUES_EMAIL
+	  		 ,QUES_CL_CODE
+	  		 ,QUES_STTUS_CODE
+	  		 ,QUES_DEL_AT
+	  		 ,QUES_HIT
+		) VALUES (
+		   	#{ques_seq,jdbcType=NUMERIC}
+		   	,#{head_code,jdbcType=VARCHAR}
+		    ,#{ques_title,jdbcType=VARCHAR}
+		    ,#{ques_cn,jdbcType=VARCHAR}
+		    ,#{ques_writer,jdbcType=VARCHAR}
+		    ,SYSDATE
+		    ,#{ques_email,jdbcType=VARCHAR}
+		    ,#{ques_cl_code,jdbcType=VARCHAR}
+		    ,'B0001'
+		    ,'N'	    
+		    , 0
+		   
+			  
+		)
+	</insert>
+	
+	<select id="selectQuestion" parameterType="int" resultType="FranQuestionVO">
+			SELECT QUES_SEQ
+                , HEAD_CODE
+				, QUES_TITLE                 
+				, QUES_CN
+				, QUES_WRITER
+				, TO_CHAR(QUES_DT,'YYYY-MM-DD HH24:MM:SS') QUES_DT    
+				, QUES_EMAIL
+                , FN_CODENAME('QUES_CL_CODE', QUES_CL_CODE) QUES_CL_CODE
+				, FN_CODENAME('QUES_STTUS_CODE', QUES_STTUS_CODE) QUES_STTUS_CODE
+                , QUES_DEL_AT  
+              
+				FROM TB_QUESTIONS
+		 WHERE QUES_SEQ = #{ques_seq} 
+		 
+	</select>
+	
+	<update id="updateQuestion" parameterType="FranQuestionVO">
+		UPDATE TB_QUESTIONS
+		   SET 
+		   QUES_TITLE=#{ques_title,jdbcType=VARCHAR}
+		   	   ,QUES_CL_CODE=#{ques_cl_code,jdbcType=VARCHAR}
+		   	   ,QUES_EMAIL=#{ques_email,jdbcType=VARCHAR}
+		   	   ,QUES_CN=#{ques_cn,jdbcType=CLOB}
+		 WHERE QUES_SEQ = #{ques_seq,jdbcType=NUMERIC}  	      
+		
+	</update>
+	
+		
+	<delete id="deleteQuestion" parameterType="FranQuestionVO">
+	
+		    UPDATE TB_QUESTIONS
+		    SET 
+		    QUES_TITLE = '삭제된 글의 제목'
+		    , QUES_CN = '삭제된 글의 내용'
+		    , QUES_DEL_AT = 'Y'
+		    WHERE QUES_SEQ = #{ques_seq}
+	</delete>
+	
+	<select id="selectQuestionAnswerList" parameterType="int" resultType="kr.or.ddit.cfms.head.question.vo.HeadAnswerVO">
+	
+		SELECT QUES_SEQ       
+				, ANSWER_TITLE                 
+				, ANSWER_CN
+				, ANSWER_DT
+				, ANSWER_DEL_AT  
+				, ANSWER_WRITER_ID                         
+				FROM TB_ANSWER
+		 WHERE QUES_SEQ = #{ques_seq} 		
+	</select>
+	
+	
+</mapper>

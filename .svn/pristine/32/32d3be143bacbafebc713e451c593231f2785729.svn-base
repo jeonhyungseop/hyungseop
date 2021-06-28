@@ -1,0 +1,29 @@
+@charset "UTF-8";
+
+/* 검색 스타일 */
+.searchTh{
+	width: 250px;
+}
+.table-borderd  th{
+	background-color : #f5ebe7;
+	margin-bottom: 80px;
+	text-align: center;
+	vertical-align: middle;
+}
+
+.date{
+	width: 200px;
+	display: inline-block;
+}
+.inputText{
+	width: 415px;
+}
+.dataTable-dropdown{
+	float: right;
+}
+.titleFont{
+	font-weight: bold;
+	font-size: 18px;
+	color: #25396F;
+}
+ 

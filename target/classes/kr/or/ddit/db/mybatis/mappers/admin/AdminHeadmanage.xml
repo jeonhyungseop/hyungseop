@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.admin.headmanage.dao.IAdminHeadmanageDAO">
+
+<select id="selectHeadCount" parameterType="PagingVO" resultType="int">
+SELECT COUNT(*)
+  FROM TB_HEADQUARTERS
+  <include refid="searchFrag" />
+</select>
+
+<sql id="searchFrag">
+	<trim prefix="WHERE" prefixOverrides="AND" suffixOverrides="OR"> 
+		<trim prefix="AND (" suffix=")">
+			<if test="searchMap!=null and @org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.searchWord)">
+						INSTR(HEAD_COMNM, #{searchMap.searchWord}) > 0
+						OR
+						INSTR(HEAD_NM, #{searchMap.searchWord}) > 0
+						OR
+						INSTR(HEAD_EMAIL, #{searchMap.searchWord}) > 0	
+			</if>
+		</trim>
+		<trim prefix="AND (" suffix=")" prefixOverrides="AND">
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.startDate)">
+				AND HEAD_SRBDE >= TO_DATE(#{searchMap.startDate}, 'YYYY-MM-DD') 
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.endDate)">
+				<![CDATA[
+				AND HEAD_SRBDE <= TO_DATE(#{searchMap.endDate}, 'YYYY-MM-DD')
+				]]> 
+			</if>
+		</trim>	
+	</trim>
+</sql>
+
+
+<!-- 가맹본부 목록조회 -->
+<select id="selectHeadmanageList" parameterType="PagingVO" resultType="HeadquartersVO">
+/* kr.or.ddit.cfms.admin.headmanage.dao.IAdminHeadmanageDAO.selectHeadmanageList */
+SELECT B.* 
+  FROM(
+        SELECT ROWNUM RNUM, A.* 
+        FROM(
+            SELECT
+                    HEAD_CODE, HEAD_ID, HEAD_PASS, HEAD_NM,
+                    HEAD_COMNM, HEAD_ZIPNO, HEAD_BAADD,
+                    HEAD_DEADD, HEAD_TELNO, HEAD_EMAIL,
+                    HEAD_SRBDE, HEAD_CHARGERNM, INDUTY_CODE,
+                    REPAY_AT, HEAD_LEDATE, HEAD_BIZRNO,
+                    BASE_WORKTIME, LUNCH_STARTTIME, LUNCH_ENDTIME,
+                    DINNER_STARTTIME, DINNER_ENDTIME, SALARY_BASE_DE,
+                    ATT_FILENO, HEAD_COMNM_EM
+            FROM
+                TB_HEADQUARTERS
+                <include refid="searchFrag" />
+            ORDER BY HEAD_SRBDE DESC
+            ) A
+        )B
+   <![CDATA[
+    WHERE RNUM >= #{startRow} AND RNUM <= ${endRow}
+    ]]>
+</select>
+
+
+<resultMap type="HeadquartersVO" id="HeadmanageMap" autoMapping="true">
+	<id property="head_code" column="HEAD_CODE"/>
+	<collection property="comCodeList"  ofType="ComCodeVO" autoMapping="true">
+		<id property="com_code" column="COM_CODE"/>
+	</collection>
+</resultMap>
+
+
+<select id="selectHeadmanage" parameterType="String" resultMap="HeadmanageMap">
+SELECT
+        HEAD_CODE, HEAD_ID, HEAD_PASS,
+        HEAD_NM, HEAD_COMNM, HEAD_ZIPNO,
+        HEAD_BAADD, HEAD_DEADD, HEAD_TELNO,
+        HEAD_EMAIL, HEAD_SRBDE, HEAD_CHARGERNM,
+        COM_CODE_NM, REPAY_AT, HEAD_LEDATE,
+        HEAD_BIZRNO, BASE_WORKTIME, LUNCH_STARTTIME,
+        LUNCH_ENDTIME,DINNER_STARTTIME, DINNER_ENDTIME,
+        SALARY_BASE_DE, ATT_FILENO, HEAD_COMNM_EM
+    FROM
+         TB_HEADQUARTERS HD, (SELECT COM_CODE, COM_CODE_NM 
+                                FROM TB_COMCODE
+                               WHERE COM_CODE_GRP = 'IDC'
+                             ) cm
+    WHERE HD.INDUTY_CODE = CM.COM_CODE
+      AND HEAD_CODE = #{head_code} 
+</select>
+
+
+<select id="selectPayOne" parameterType="String" resultType="kr.or.ddit.cfms.admin.headmanage.vo.PayListVO">
+SELECT B.* 
+  FROM (
+        SELECT ROWNUM RNUM, A.* 
+          FROM(
+                SELECT  pay_seq, head_code, pa.syspay_code,
+                        pay_se_code, TO_CHAR(syspay_pay_time,'YYYYMMDD') syspay_pay_time, TO_CHAR(syspay_end_time, 'YYYYMMDD') syspay_end_time,
+                        syspay_repay_at, SYSPAY_NM
+                  FROM TB_PAYLIST PA, TB_SYSTEMPAYMENT SY
+                 WHERE PA.SYSPAY_CODE = SY.SYSPAY_CODE
+                   AND HEAD_CODE = #{head_code}
+                   ORDER BY SYSPAY_PAY_TIME DESC
+                )A
+        ) B
+ WHERE RNUM = 1
+</select>
+
+</mapper>

@@ -1,0 +1,186 @@
+package kr.or.ddit.cfms.head.royal.controller;
+
+import java.util.List;
+
+import javax.inject.Inject;
+import javax.servlet.http.HttpSession;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import kr.or.ddit.cfms.commons.vo.ComCodeGrpVO;
+import kr.or.ddit.cfms.commons.vo.PagingVO;
+import kr.or.ddit.cfms.fran.commons.vo.FranchiseVO;
+import kr.or.ddit.cfms.head.inven.vo.HeadInvenVO;
+import kr.or.ddit.cfms.head.royal.service.IHeadRoyalService;
+import kr.or.ddit.cfms.head.royal.vo.HeadBillVO;
+import kr.or.ddit.cfms.head.royal.vo.HeadRoyalVO;
+
+/**
+ * @author 이진수
+ * @since 2021. 5. 19
+ * @version 1.0
+ * @see javax.servlet.http.HttpServlet
+ * <pre>
+ * [[개정이력(Modification Information)]]
+ * 수정일                          수정자               수정내용
+ * --------     --------    ----------------------
+ * 2021. 5. 19      작성자명       최초작성
+ * Copyright (c) 2021 by DDIT All right reserved
+ * </pre>
+ */
+@Controller
+@RequestMapping("/head/royal")
+public class HeadRoyalController {
+	private static final Logger logger = LoggerFactory.getLogger(HeadRoyalController.class);
+	
+	@Inject
+	private IHeadRoyalService service;
+	
+	public void comCode(Model model) {
+		ComCodeGrpVO BscCode = service.retrieveCodeList("BSC");
+		ComCodeGrpVO PscCode = service.retrieveCodeList("PSC");
+		model.addAttribute("BscCode", BscCode);
+		model.addAttribute("PscCode", PscCode);
+	}
+	@GetMapping
+	public String royal(
+		@RequestParam(value="page", required=false, defaultValue="1") int currentPage,
+		@RequestParam(value ="selector", required = false, defaultValue = "5") int selectorRow,
+		@RequestParam(value="startDate", required = false) String startDate,
+		@RequestParam(value="endDate", required = false) String endDate,
+		@RequestParam(value="minPrice", required = false) String minPrice,
+		@RequestParam(value="maxPrice", required = false) String maxPrice,
+		Model model, HttpSession session	
+	) {
+		PagingVO<HeadRoyalVO> pagingVO  = listForAjax(currentPage, selectorRow, startDate, endDate, minPrice, maxPrice, session);
+		model.addAttribute("pagingVO", pagingVO);
+		return "/head/royal/royalMain";
+	}
+	
+	@RequestMapping(produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+	@ResponseBody
+	public PagingVO<HeadRoyalVO> listForAjax(
+		@RequestParam(value="page", required=false, defaultValue="1") int currentPage,
+		@RequestParam(value ="selector", required = false, defaultValue = "5") int selectorRow,
+		@RequestParam(value="startDate", required = false) String startDate,
+		@RequestParam(value="endDate", required = false) String endDate,
+		@RequestParam(value="minPrice", required = false) String minPrice,
+		@RequestParam(value="maxPrice", required = false) String maxPrice
+		, HttpSession session
+	){
+		/**파라미터 조회 - 세션에 담긴 가맹본부 코드 저장*/
+		String code = (String) session.getAttribute("code");
+		
+		/**결과자료 객체 생성*/
+		PagingVO<HeadRoyalVO> pagingVO = new PagingVO<>(selectorRow, 10, currentPage);
+		pagingVO.addSearchMap("startDate", startDate);
+		pagingVO.addSearchMap("endDate", endDate);
+		pagingVO.addSearchMap("minPrice", minPrice);
+		pagingVO.addSearchMap("maxPrice", maxPrice);
+		pagingVO.setDetailSearch(new HeadRoyalVO(code));
+		
+		/**파라미터 검증*/
+		
+		/**서비스 데이터 구성*/
+		
+		/**서비스 요청*/
+		int totalRecord = service.retrieveRoyalCount(pagingVO);
+		pagingVO.setTotalRecord(totalRecord);
+		
+		List<HeadRoyalVO> RoyalList = service.retrieveRoyalList(pagingVO);
+		
+		pagingVO.setDataList(RoyalList);
+		
+		/**결과전송*/
+		return pagingVO;
+	}
+	
+	@GetMapping("/BillList")
+	public String royalList(
+		@RequestParam(value="page", required=false, defaultValue="1") int currentPage,
+		@RequestParam(value ="selector", required = false, defaultValue = "10") int selectorRow,
+		@RequestParam(value="searchNm", required = false) String searchNm,
+		@RequestParam(value="startDate", required = false) String startDate,
+		@RequestParam(value="endDate", required = false) String endDate,
+		@RequestParam(value="bscCode", required = false) String bscCode,
+		@RequestParam(value="pscCode", required = false) String pscCode,
+		Model model, HttpSession session
+	) {
+		PagingVO<HeadBillVO> pagingVO = listForAjax(currentPage, selectorRow, searchNm, startDate, endDate, bscCode, pscCode, session);
+		comCode(model);
+		model.addAttribute("pagingVO", pagingVO);
+		return "/head/royal/billList";
+	}
+	
+	@RequestMapping(value = "/BillList", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+	@ResponseBody
+	public PagingVO<HeadBillVO> listForAjax(
+		@RequestParam(value="page", required=false, defaultValue="1") int currentPage,
+		@RequestParam(value ="selector", required = false, defaultValue = "10") int selectorRow,
+		@RequestParam(value="searchNm", required = false) String searchNm,
+		@RequestParam(value="startDate", required = false) String startDate,
+		@RequestParam(value="endDate", required = false) String endDate,
+		@RequestParam(value="bscCode", required = false) String bscCode,
+		@RequestParam(value="pscCode", required = false) String pscCode,
+		HttpSession session
+	) {
+		/**파라미터 조회 - 세션에 담긴 가맹본부 코드 저장*/
+		String code = (String) session.getAttribute("code");
+		
+		/**결과자료 객체 생성*/
+		PagingVO<HeadBillVO> pagingVO = new PagingVO<>(selectorRow, 10, currentPage);
+		pagingVO.addSearchMap("searchNm", searchNm);
+		pagingVO.addSearchMap("startDate", startDate);
+		pagingVO.addSearchMap("endDate", endDate);
+		pagingVO.addSearchMap("bscCode", bscCode);
+		pagingVO.addSearchMap("pscCode", pscCode);
+		pagingVO.setDetailSearch(new HeadBillVO(code));
+		
+		/**파라미터 검증*/
+		
+		/**서비스 데이터 구성*/
+		
+		/**서비스 요청*/
+		int totalRecord = service.retrievetBillCount(pagingVO);
+		pagingVO.setTotalRecord(totalRecord);
+		
+		List<HeadBillVO> headRoyalList = service.retrieveBillList(pagingVO);
+		
+		pagingVO.setDataList(headRoyalList);
+		
+		/**결과전송*/
+		return pagingVO;
+	}
+	
+	@GetMapping("/modify")
+	public String updateForm() {
+		return "/head/royal/royalForm";
+		
+	}
+	
+	@PutMapping
+	public String update() {
+		return null;
+		
+	}
+	
+	@GetMapping(value = "/royalchart",produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+	@ResponseBody
+	public List<HeadRoyalVO> royalList(
+		@RequestParam("code") String code
+	){
+		List<HeadRoyalVO> chartList = service.retrieveRoyalChart(code);
+		return chartList;
+	}
+	
+}

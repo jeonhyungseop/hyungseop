@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.head.inven.dao.IHeadInvenDAO">
+	<sql id="searchFrag">
+		<if test="searchMap!=null and @org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.searchWord)">
+        	AND INSTR(UPPER(PROD_NM), UPPER(#{searchMap.searchWord})) > 0
+        </if>
+        <if test="searchMap.searchMax!=null and @org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.searchMax)">
+	        <choose>
+	        	<when test="searchMap.searchMax eq 'maxDown'">
+	        		<![CDATA[
+	        		AND HEAD_PROINVEN > HEAD_NOWINVEN
+	        		]]> 
+	        	</when>
+	        	<otherwise>
+	        		<![CDATA[
+	        		AND HEAD_PROINVEN <= HEAD_NOWINVEN
+	        		]]> 
+	        	</otherwise>
+	        </choose>
+        </if>
+	</sql>
+	<select id="selectHeadInvenCount" parameterType="PagingVO" resultType="int">
+		SELECT COUNT(*)
+		FROM V_HEADINVEN
+		WHERE HEAD_CODE = #{detailSearch.head_code}
+		<include refid="searchFrag" />
+	</select>
+	<resultMap type="HeadInvenVO" id="headInvenMap" autoMapping="true">
+		<id property="prod_code" column="PROD_CODE"/>
+		<association property="headProdVO" javaType="HeadProdVO" autoMapping="true"/>
+	</resultMap>
+	<select id="selectHeadInvenList" parameterType="PagingVO" resultMap="headInvenAttMap">
+		SELECT *
+		FROM(
+		    SELECT ROWNUM RNUM, A.*
+		    FROM(
+		        SELECT *
+		        FROM V_HEADINVEN
+		        WHERE HEAD_CODE = #{detailSearch.head_code}
+		        <include refid="searchFrag" />
+		        ORDER BY PROD_CODE ASC
+		    ) A
+		) B LEFT OUTER JOIN TB_ATTACHFILE ON B.ATT_FILENO = TB_ATTACHFILE.ATT_FILENO
+		<![CDATA[
+		WHERE RNUM >= #{startRow} AND RNUM <= #{endRow}
+		]]>
+	</select>
+	<resultMap type="HeadInvenVO" id="headInvenAttMap" autoMapping="true">
+		<id property="prod_code" column="PROD_CODE"/>
+		<collection property="attachfileList" ofType="AttachfileVO" autoMapping="true">
+			<id property="att_seq" column="ATT_SEQ"/>
+		</collection>
+	</resultMap>
+	<select id="selectHeadInven" parameterType="HeadInvenVO" resultMap="headInvenAttMap">
+		SELECT *
+        FROM V_HEADINVEN LEFT OUTER JOIN TB_ATTACHFILE ON V_HEADINVEN.ATT_FILENO = TB_ATTACHFILE.ATT_FILENO
+        WHERE HEAD_CODE = #{head_code}
+        AND PROD_CODE = #{prod_code}
+	</select>
+	<resultMap type="ComCodeGrpVO" id="comCodeGrpMap" autoMapping="true">
+		<id property="com_code_grp" column="COM_CODE_GRP"/>
+		<collection property="comCodeList" ofType="ComCodeVO" autoMapping="true">
+			<id property="com_code" column="COM_CODE"/>
+		</collection>
+	</resultMap>
+	<select id="selectCodeList" parameterType="String" resultMap="comCodeGrpMap">
+		SELECT *
+		FROM TB_COMCODE_GRP INNER JOIN TB_COMCODE ON (TB_COMCODE_GRP.COM_CODE_GRP = TB_COMCODE.COM_CODE_GRP)
+		WHERE TB_COMCODE_GRP.USE_AT = 'Y' AND TB_COMCODE.USE_AT = 'Y'
+			  AND TB_COMCODE_GRP.COM_CODE_GRP = #{code}
+	</select>
+	<insert id="insertProd" parameterType="HeadInvenVO">
+	<selectKey resultType="map" order="BEFORE" keyColumn="PROD_CODE,ATT_FILENO" keyProperty="prod_code,att_fileno">
+		SELECT fn_nextPC() PROD_CODE
+		<if test="attachfileList!=null">
+		, fn_getattfileno() ATT_FILENO
+		</if>
+		FROM DUAL
+	</selectKey>
+		INSERT INTO TB_PROD(
+		    PROD_CODE,
+		    PROD_CL_CODE,
+		    PROD_NM,
+		    PROD_UNIT_CODE,
+		    PROD_UNIT_QY,
+		    PROD_BRCD,
+		    PROD_PUCHAS_PC,
+		    PROD_SUPLY_PC,
+		    MEMO,
+		    PROD_MAFANM
+		    <if test="att_fileno!=null">
+		    , ATT_FILENO
+		    </if>
+		)VALUES(
+		    #{prod_code,jdbcType=VARCHAR},
+		    #{prod_cl_code,jdbcType=VARCHAR},
+		    #{prod_nm,jdbcType=VARCHAR},
+		    #{prod_unit_code,jdbcType=VARCHAR},
+		    #{prod_unit_qy,jdbcType=NUMERIC},
+		    #{prod_brcd,jdbcType=VARCHAR},
+		    #{prod_puchas_pc,jdbcType=NUMERIC},
+		    #{prod_suply_pc,jdbcType=NUMERIC},
+		    #{prod_memo,jdbcType=VARCHAR},
+		    #{prod_mafanm,jdbcType=VARCHAR}
+		    <if test="att_fileno!=null">
+		    , #{att_fileno,jdbcType=VARCHAR}
+		    </if>
+		)	
+	</insert>
+	
+	<insert id="insertInven" parameterType="HeadInvenVO">
+		INSERT INTO TB_HEINVEN(
+		    PROD_CODE,
+		    HEAD_CODE,
+		    HEAD_MAXCORD_QY,
+			HEAD_PROINVEN,
+			HEAD_NOWINVEN,
+		    MEMO
+		)VALUES(
+		    #{prod_code,jdbcType=VARCHAR},
+		    #{head_code,jdbcType=VARCHAR},
+		    #{head_maxcord_qy,jdbcType=NUMERIC},
+			#{head_proinven,jdbcType=NUMERIC},
+			#{head_nowinven,jdbcType=NUMERIC},
+		    #{head_memo,jdbcType=VARCHAR}
+		)
+	</insert>
+	
+	<insert id="insertAttatches" parameterType="HeadInvenVO">
+	<selectKey resultType="int" keyProperty="startAtt" order="BEFORE">
+		SELECT NVL(MAX(ATT_SEQ), 0) + 1
+		FROM TB_ATTACHFILE
+		WHERE ATT_FILENO = #{att_fileno}
+	</selectKey>
+	INSERT ALL
+	<foreach collection="attachfileList" item="attatch" index="idx">
+		INTO TB_ATTACHFILE(
+		    ATT_FILENO,
+		    ATT_SEQ,
+		    BIZ_SE,
+		    FILE_PATH,
+		    FILE_NM,
+		    SAVE_FILENM,
+		    FILE_TYPE,
+		    FILE_SIZE,
+		    UPDATETIME,
+		    UPDATEUSER_ID,
+		    UPDTIME,
+		    UPDUSER_ID
+		)VALUES(
+		    #{att_fileno,jdbcType=VARCHAR},
+		    #{startAtt}+#{idx},
+		    #{attatch.biz_se,jdbcType=VARCHAR},
+		    #{attatch.file_path,jdbcType=VARCHAR},
+		    #{attatch.file_nm,jdbcType=VARCHAR},
+		    #{attatch.save_filenm,jdbcType=VARCHAR},
+		    #{attatch.file_type,jdbcType=VARCHAR},
+		    #{attatch.file_size,jdbcType=NUMERIC},
+		    SYSDATE,
+		    #{attatch.updateuser_id,jdbcType=VARCHAR},
+		    SYSDATE,
+		    #{attatch.upduser_id,jdbcType=VARCHAR}
+		)
+	</foreach>
+	SELECT * FROM DUAL
+	</insert>
+	
+	<insert id="insertUnitpclist" parameterType="HeadInvenVO">
+		INSERT INTO TB_UNITPCLIST(
+		    UNITPC_SEQ,
+		    PROD_CODE,
+		    UNITPC,
+		    CHANGE_DE
+		)VALUES(
+		    SEQ_UNITPCLIST.NEXTVAL,
+		    #{prod_code},
+		    #{prod_suply_pc},
+		    TO_CHAR(SYSDATE, 'YYYYMMDD')
+		)
+	</insert>
+	<delete id="deleteUnitpclist" parameterType="String">
+		DELETE FROM TB_UNITPCLIST
+		WHERE PROD_CODE = #{prod_code}
+	</delete>
+	<delete id="deleteInvenlist" parameterType="String">
+		DELETE FROM TB_HEINVEN
+		WHERE PROD_CODE = #{prod_code}
+	</delete>
+	<select id="selectAttNo" parameterType="String" resultMap="headInvenAttMap">
+		SELECT ATT_FILENO
+		FROM TB_PROD
+		WHERE PROD_CODE = #{prod_code}
+	</select>
+	<delete id="deleteProdList" parameterType="String">
+		UPDATE TB_PROD
+		SET PROD_USE_AT = 'N'
+		WHERE PROD_CODE = #{prod_code}
+	</delete>
+	<delete id="deleteAttatches" parameterType="HeadInvenVO">
+		DELETE FROM TB_ATTACHFILE
+		WHERE ATT_FILENO = #{att_fileno}
+		<if test="delAttSeq!=null">
+			AND ATT_SEQ IN
+			<foreach collection="delAttSeq" item="att_seq" open="(" close=")" separator=",">
+				#{att_seq}
+			</foreach>
+		</if>
+	</delete>
+	<select id="selectSaveNamesForDelete" parameterType="HeadInvenVO" resultType="String">
+		SELECT SAVE_FILENM
+		FROM TB_ATTACHFILE
+		WHERE ATT_FILENO = #{att_fileno}
+	</select>
+	<select id="selectAttList" parameterType="String" resultType="AttachfileVO">
+		SELECT *
+		FROM TB_ATTACHFILE
+		WHERE ATT_FILENO = #{att_fileno}
+	</select>
+	
+	<select id="selectProd" parameterType="String" resultMap="headInvenAttMap">
+		SELECT *
+		FROM V_HEADINVEN LEFT OUTER JOIN TB_ATTACHFILE ON V_HEADINVEN.ATT_FILENO = TB_ATTACHFILE.ATT_FILENO
+		WHERE PROD_CODE = #{prod_code}
+	</select>
+	<select id="selectFile" parameterType="AttachfileVO" resultType="AttachfileVO">
+		SELECT *
+		FROM TB_ATTACHFILE
+		WHERE ATT_FILENO = #{att_fileno} AND ATT_SEQ = #{att_seq}
+	</select>
+	
+	<update id="updateProd" parameterType="HeadInvenVO">
+		UPDATE TB_PROD
+		SET 
+		    PROD_CL_CODE = #{prod_cl_code,jdbcType=VARCHAR}
+		    , PROD_NM = #{prod_nm,jdbcType=VARCHAR}
+		    , PROD_UNIT_CODE = #{prod_unit_code,jdbcType=VARCHAR}
+		    , PROD_UNIT_QY = #{prod_unit_qy,jdbcType=NUMERIC}
+		    , PROD_BRCD = #{prod_brcd,jdbcType=VARCHAR}
+		    , PROD_PUCHAS_PC = #{prod_puchas_pc,jdbcType=NUMERIC}
+		    , PROD_SUPLY_PC = #{prod_suply_pc,jdbcType=NUMERIC}
+		    , MEMO = #{prod_memo,jdbcType=VARCHAR}
+		    , PROD_MAFANM = #{prod_mafanm,jdbcType=VARCHAR}
+		    , PROD_USE_AT = #{prod_use_at,jdbcType=VARCHAR}
+		WHERE PROD_CODE = #{prod_code,jdbcType=VARCHAR}
+	</update>
+	<update id="updateInven">
+		UPDATE TB_HEINVEN
+		SET
+			HEAD_MAXCORD_QY = #{head_maxcord_qy,jdbcType=NUMERIC}
+			, HEAD_PROINVEN = #{head_proinven,jdbcType=NUMERIC}
+			, HEAD_NOWINVEN = #{head_nowinven,jdbcType=NUMERIC}
+			, MEMO = #{head_code, jdbcType=VARCHAR}
+		WHERE PROD_CODE = #{prod_code,jdbcType=VARCHAR} AND HEAD_CODE = #{head_code,jdbcType=VARCHAR}
+			
+	</update>
+	<select id="selectUnitpcList" parameterType="String" resultType="UnitpcListVO">
+		SELECT UNITPC_SEQ, PROD_CODE, UNITPC, TO_DATE(CHANGE_DE) CHANGE_DE
+		FROM TB_UNITPCLIST
+		WHERE PROD_CODE = #{prod_code}
+		ORDER BY TO_DATE(CHANGE_DE)
+	</select>
+</mapper>

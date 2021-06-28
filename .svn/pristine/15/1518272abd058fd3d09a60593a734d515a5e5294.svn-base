@@ -1,0 +1,273 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.head.systemprod.dao.IHeadSystemprodDAO">
+
+<select id="selectSystemprodList" resultType="AdminProdVO">
+	SELECT SYSPAY_CODE, SYSPAY_NM, SYSPAY_MONTH, 
+	       SYSPAY_USER_NUM, TO_CHAR(SYSPAY_PC, '999,999,999,999,999' ) SYSPAY_PC, MEMO
+	  FROM TB_SYSTEMPAYMENT
+</select>
+
+<insert id="insertHeadSystemprod" parameterType="PayListVO">
+<selectKey resultType="int" order="BEFORE" keyProperty="pay_seq">
+	SELECT SEQ_PAYLIST.NEXTVAL FROM DUAL 
+</selectKey>
+  INSERT INTO tb_paylist (
+    pay_seq,
+    head_code,
+    syspay_code,
+    pay_se_code,
+    syspay_pay_time,
+    syspay_end_time,
+    syspay_repay_at
+) VALUES (
+    #{pay_seq},
+    #{head_code, jdbcType=VARCHAR},
+    #{syspay_code, jdbcType=VARCHAR},
+    #{pay_se_code, jdbcType=VARCHAR},
+    SYSDATE,
+    ( select TO_DATE(to_char(add_months(sysdate,  
+         ( SELECT SYSPAY_MONTH 
+              FROM TB_SYSTEMPAYMENT
+             WHERE SYSPAY_CODE = #{syspay_code})),'yyyymmddhh24miss'), 'yyyymmddhh24miss') from dual),
+    #{syspay_repay_at, jdbcType=VARCHAR}
+)
+
+</insert>
+
+
+<resultMap type="PayListVO" id="UseProdMap" autoMapping="true">
+	<id property="pay_seq" column="PAY_SEQ"/>
+	<collection property="systempaymentList" ofType="systempaymentVO" autoMapping="true">
+		<id property="syspay_code" column="SYSPAY_CODE"/>
+	</collection>
+</resultMap>
+
+
+<!-- 이용중인 이용권 -->
+<select id="selectUseProd" parameterType="String" resultMap="UseProdMap">
+SELECT PAY_SEQ, HEAD_CODE, PA.SYSPAY_CODE, PAY_SE_CODE, 
+       TO_CHAR(SYSPAY_PAY_TIME,'YYYYMMDD') syspay_pay_time, TO_CHAR(syspay_end_time, 'YYYYMMDD') syspay_end_time, SYSPAY_REPAY_AT,
+       SYSPAY_NM, SYSPAY_MONTH, SYSPAY_USER_NUM, SYSPAY_PC, MEMO,
+       PA.SYSPAY_USE_AT
+  FROM TB_PAYLIST PA, TB_SYSTEMPAYMENT SY
+ WHERE HEAD_CODE = #{head_code, jdbcType=VARCHAR}
+   AND PA.SYSPAY_CODE = SY.SYSPAY_CODE
+   AND PA.SYSPAY_USE_AT = 'Y'
+ <![CDATA[
+   AND SYSDATE <= SYSPAY_END_TIME
+   AND SYSPAY_PAY_TIME <= SYSDATE
+  ]]>
+</select>
+
+
+<!-- 이용중인 정기결제 내역 -->
+<select id="selectUseRegular" parameterType="String" resultMap="UseProdMap">
+SELECT PAY_SEQ, HEAD_CODE, PA.SYSPAY_CODE, (SELECT FN_CODENAME('PAY_SE_CODE', PAY_SE_CODE)
+FROM DUAL) PAY_SE_CODE, 
+       TO_CHAR(SYSPAY_PAY_TIME,'YYYYMMDD') syspay_pay_time, TO_CHAR(syspay_end_time, 'YYYYMMDD') syspay_end_time, SYSPAY_REPAY_AT,
+       SYSPAY_NM, SYSPAY_MONTH, SYSPAY_USER_NUM, SYSPAY_PC, MEMO,
+       PA.SYSPAY_USE_AT
+  FROM TB_PAYLIST PA, TB_SYSTEMPAYMENT SY
+ WHERE HEAD_CODE = #{head_code, jdbcType=VARCHAR}
+   AND PA.SYSPAY_CODE = SY.SYSPAY_CODE
+   AND PA.SYSPAY_USE_AT = 'Y'
+   AND SYSPAY_REPAY_AT = 'Y'
+<![CDATA[
+   AND SYSDATE <= SYSPAY_END_TIME
+   AND SYSPAY_PAY_TIME <= SYSDATE
+   ]]>
+</select>
+
+
+<!-- 결제내역 조회-->
+<select id="selectPayList" parameterType="PagingVO" resultMap="UseProdMap">
+SELECT B.* 
+  FROM (
+    SELECT ROWNUM RNUM, A.* , COM.COM_CODE_NM
+      FROM (
+            SELECT PAY_SEQ, HEAD_CODE, PA.SYSPAY_CODE, PAY_SE_CODE, 
+                   TO_CHAR(SYSPAY_PAY_TIME, 'YYYYMMDD') SYSPAY_PAY_TIME, TO_CHAR(syspay_end_time, 'YYYYMMDD') SYSPAY_END_TIME, SYSPAY_REPAY_AT,
+                   SYSPAY_NM, TO_CHAR(SYSPAY_PC, '999,999,999,999,999') SYSPAY_PC, PA.SYSPAY_USE_AT
+              FROM TB_PAYLIST PA, TB_SYSTEMPAYMENT SY
+             WHERE HEAD_CODE = #{head_code, jdbcType=VARCHAR}
+               AND PA.SYSPAY_CODE = SY.SYSPAY_CODE
+              ORDER BY PAY_SEQ DESC
+            )A , TB_COMCODE COM
+    WHERE A.PAY_SE_CODE = COM.COM_CODE
+      AND COM_CODE_GRP = 'PSC'
+  )B
+<![CDATA[
+WHERE RNUM >= #{startRow} AND RNUM <= ${endRow}
+]]>
+</select>
+
+<!-- 결제내역 count -->
+<select id="selectMaxpay" parameterType="String" resultType="int">
+SELECT count(rnum)
+  FROM (
+    SELECT ROWNUM RNUM, A.* , COM.COM_CODE_NM
+      FROM (
+            SELECT PAY_SEQ, HEAD_CODE, PA.SYSPAY_CODE, PAY_SE_CODE, 
+                   TO_CHAR(SYSPAY_PAY_TIME, 'YYYYMMDD') SYSPAY_PAY_TIME, TO_CHAR(syspay_end_time, 'YYYYMMDD') SYSPAY_END_TIME, SYSPAY_REPAY_AT,
+                   SYSPAY_NM, TO_CHAR(SYSPAY_PC, '999,999,999,999,999') SYSPAY_PC, PA.SYSPAY_USE_AT
+              FROM TB_PAYLIST PA, TB_SYSTEMPAYMENT SY
+             WHERE HEAD_CODE = #{head_code, jdbcType=VARCHAR}
+               AND PA.SYSPAY_CODE = SY.SYSPAY_CODE
+              ORDER BY PAY_SEQ DESC
+            )A , TB_COMCODE COM
+    WHERE A.PAY_SE_CODE = COM.COM_CODE
+      AND COM_CODE_GRP = 'PSC'
+  )B
+</select>
+
+<!-- 정기결제 내역 조회 -->
+<select id="selectRegularList" parameterType="PagingVO" resultMap="UseProdMap">
+SELECT * 
+  FROM
+  (
+    SELECT ROWNUM RNUM, A.* , COM.COM_CODE_NM
+      FROM (
+            SELECT PAY_SEQ, HEAD_CODE, PA.SYSPAY_CODE, PAY_SE_CODE, 
+                   TO_CHAR(SYSPAY_PAY_TIME, 'YYYYMMDD') SYSPAY_PAY_TIME, TO_CHAR(syspay_end_time, 'YYYYMMDD') SYSPAY_END_TIME, SYSPAY_REPAY_AT,
+                   SYSPAY_NM, TO_CHAR(SYSPAY_PC, '999,999,999,999,999') SYSPAY_PC, PA.SYSPAY_USE_AT
+              FROM TB_PAYLIST PA, TB_SYSTEMPAYMENT SY
+             WHERE HEAD_CODE = #{head_code, jdbcType=VARCHAR}
+               AND PA.SYSPAY_CODE = SY.SYSPAY_CODE
+              ORDER BY PAY_SEQ DESC
+            )A , TB_COMCODE COM
+    WHERE A.PAY_SE_CODE = COM.COM_CODE
+      AND COM_CODE_GRP = 'PSC' 
+      AND SYSPAY_USE_AT = 'Y'
+  )B
+<![CDATA[
+WHERE RNUM >= #{startRow} AND RNUM <= ${endRow}
+]]>
+</select>
+
+<!-- 정기결제 Count -->
+<select id="selectRegularCount" parameterType="String" resultType="int">
+SELECT Count(*)
+  FROM
+  (
+    SELECT ROWNUM RNUM, A.* , COM.COM_CODE_NM
+      FROM (
+            SELECT PAY_SEQ, HEAD_CODE, PA.SYSPAY_CODE, PAY_SE_CODE, 
+                   TO_CHAR(SYSPAY_PAY_TIME, 'YYYYMMDD') SYSPAY_PAY_TIME, TO_CHAR(syspay_end_time, 'YYYYMMDD') SYSPAY_END_TIME, SYSPAY_REPAY_AT,
+                   SYSPAY_NM, TO_CHAR(SYSPAY_PC, '999,999,999,999,999') SYSPAY_PC, PA.SYSPAY_USE_AT
+              FROM TB_PAYLIST PA, TB_SYSTEMPAYMENT SY
+             WHERE HEAD_CODE = #{head_code, jdbcType=VARCHAR}
+               AND PA.SYSPAY_CODE = SY.SYSPAY_CODE
+              ORDER BY PAY_SEQ DESC
+            )A , TB_COMCODE COM
+    WHERE A.PAY_SE_CODE = COM.COM_CODE
+      AND COM_CODE_GRP = 'PSC' 
+      AND SYSPAY_USE_AT = 'Y'
+  )B
+
+</select>
+
+<!-- 사용중인 상품 해지 -->
+<delete id="deletePay" parameterType="PayListVO">
+	UPDATE TB_PAYLIST
+	  SET SYSPAY_USE_AT = 'N'
+	WHERE PAY_SEQ = #{pay_seq, jdbcType=NUMERIC}
+</delete>
+
+<!-- 시스템 상품목록조회(변경가능한) -->
+<select id="modiProdList" resultType="systempaymentVO">
+		SELECT SYSPAY_CODE, SY.SYSPAY_NM, SYSPAY_MONTH, 
+           sy.SYSPAY_USER_NUM, TO_CHAR(SYSPAY_PC, '999,999,999,999,999') SYSPAY_PC, 
+           MEMO, SYSPAY_USE_AT
+	 FROM(
+	        SELECT SYSPAY_NM, syspay_user_num
+	          FROM TB_PAYLIST PA, TB_SYSTEMPAYMENT SY
+	         WHERE HEAD_CODE = #{head_code, jdbcType=VARCHAR}
+	           AND PA.SYSPAY_CODE = SY.SYSPAY_CODE
+	           AND PA.SYSPAY_USE_AT = 'Y'
+	           <![CDATA[
+	           AND SYSDATE <= SYSPAY_END_TIME
+	           AND SYSPAY_PAY_TIME <= SYSDATE
+	       )A, TB_SYSTEMPAYMENT SY
+	 WHERE SY.SYSPAY_NM != A.SYSPAY_NM
+       AND  A.SYSPAY_USER_NUM < SY.SYSPAY_USER_NUM
+        ]]>
+</select>
+
+    
+<!-- 예치금 충전 -->
+<insert id="insertHeadPayback" parameterType="HeadsmnVO">
+INSERT INTO TB_HEADSMN(
+DSMN_SEQ, HEAD_CODE, DSMN_BLCE, 
+DSMN_MVMONEY, DSMN_RCPPAY_SE, 
+ELCTC_MT_CODE, MEMO, DSMN_MVTIME
+)
+VALUES(
+    SEQ_HEADSMN.NEXTVAL,
+    #{head_code},
+    (SELECT B.DSMN_BLCE + #{dsmn_mvmoney} DSMN_BLCE
+         FROM(
+            SELECT ROWNUM RNUM, A.* 
+              FROM(
+                    SELECT *
+                    FROM TB_HEADSMN
+                    ORDER BY DSMN_SEQ DESC
+                )A
+         )B
+          WHERE RNUM  = 1
+    ),
+    #{dsmn_mvmoney},
+    #{dsmn_rcppay_se},
+    #{elctc_mt_code},
+    #{memo},
+    SYSDATE
+)
+</insert>
+
+<!-- 예치금 출금 -->
+<insert id="insertOutHeadPay" parameterType="HeadsmnVO">
+INSERT INTO TB_HEADSMN(
+DSMN_SEQ, HEAD_CODE, DSMN_BLCE, 
+DSMN_MVMONEY, DSMN_RCPPAY_SE, 
+MEMO, DSMN_MVTIME
+)
+VALUES(
+    SEQ_HEADSMN.NEXTVAL,
+    #{head_code},
+    (SELECT B.DSMN_BLCE - #{dsmn_mvmoney} DSMN_BLCE
+         FROM(
+            SELECT ROWNUM RNUM, A.* 
+              FROM(
+                    SELECT *
+                    FROM TB_HEADSMN
+                    ORDER BY DSMN_SEQ DESC
+                )A
+         )B
+          WHERE RNUM  = 1
+    ),
+    #{dsmn_mvmoney},
+    #{dsmn_rcppay_se},
+    #{memo},
+    SYSDATE
+)
+</insert>
+
+
+
+<!-- 예치금 잔액조회 -->
+<select id="selectHeadsmnPay" resultType="HeadsmnVO">
+   SELECT DSMN_BLCE 
+      FROM(
+            SELECT ROWNUM RNUM, A.*
+              FROM (
+                SELECT DSMN_SEQ, HEAD_CODE, DSMN_BLCE, 
+                       DSMN_MVMONEY, 
+                       DSMN_RCPPAY_SE, ELCTC_MT_CODE, MEMO, DSMN_MVTIME 
+                  FROM TB_HEADSMN
+                 ORDER BY DSMN_SEQ DESC
+             )A
+     )B
+     WHERE RNUM = 1
+</select>
+
+</mapper>

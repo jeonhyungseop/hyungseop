@@ -1,0 +1,14 @@
+package kr.or.ddit.cfms.head.question.service;
+
+import java.util.List;
+
+import kr.or.ddit.cfms.commons.vo.PagingVO;
+import kr.or.ddit.cfms.fran.question.vo.FranQuestionVO;
+
+public interface IHeadQuestionService {
+	
+	public List<FranQuestionVO> selectQuestionsList(PagingVO<FranQuestionVO> pagingVO);
+	
+	public int selectQuestionCount(PagingVO<FranQuestionVO> pagingVO);
+
+}

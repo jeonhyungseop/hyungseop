@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.head.dayreport.dao.IHeadDayReportDAO">
+
+	<!-- 가맹점 리스트 조회 -->
+	<select id="selectFranchiseList" parameterType="string" resultType="FranchiseVO">
+	/*kr.or.ddit.cfms.head.dayreport.dao.IHeadDayReportDAO.selectFranchiseList */
+		SELECT
+		    FRAN_CODE,
+		    HEAD_CODE,
+		    BIZRNO,
+		    FRAN_COMNM,
+		    FRAN_SRBDE,
+		    FRAN_OPENDE,
+		    FRAN_CLSBIZDE,
+		    FRAN_STTUS_CODE,
+		    FRAN_ID,
+		    FRAN_PASS,
+		    FRAN_ZIPNO,
+		    FRAN_BAADD,
+		    FRAN_DEADD,
+		    FRAN_SE_CODE,
+		    FRAN_LATI,
+		    FRAN_LOTI,
+		    FRAN_TELNO,
+		    FOWNER_NM,
+		    FOWNER_CELNO,
+		    FOWNER_BIRTDAY,
+		    FOWNER_EMAIL,
+		    PIN_NO,
+		    AUTH_PASS,
+		    FRAN_BIZRNO,
+		    ATT_FILENO
+		FROM
+		    TB_FRANCHISE
+		WHERE
+		    HEAD_CODE = #{head_code}
+	</select>
+	
+	<resultMap type="CustomerorderVO" id="custom" autoMapping="true">
+		<id property="cord_code" column="CORD_CODE"/>
+			<collection property="saleList" ofType="SaleVO" autoMapping="true">
+				<id property="cord_code" column="CORD_CODE"/>
+			</collection>
+	</resultMap>
+	
+	<!-- 가맹점 별 하루 판매 총액 조회 -->
+	<select id="selectDaySaleList" parameterType="Map" resultMap="custom">
+	/*kr.or.ddit.cfms.head.dayreport.dao.IHeadDayReportDAO.selectDaySaleList */
+		SELECT DISTINCT  A.FRAN_CODE FRAN_CODE,  
+              A. FRAN_COMNM FRAN_COMNM,
+              NVL(SUM(C.ORDPAY_MONEY) OVER (PARTITION BY A.FRAN_CODE),0)  TOTAL_ORDMONEY,
+              (D.TARGET_MONEY/(SELECT ROUND(LAST_DAY(sysdate) -TRUNC(sysdate,'MM') )FROM DUAL)) TARGET_MONEY
+		FROM TB_FRANCHISE A LEFT OUTER JOIN TB_CUSTOMERORDER B
+            ON A.FRAN_CODE = B.FRAN_CODE
+            LEFT OUTER JOIN (
+                SELECT *
+                FROM TB_SALE
+                WHERE PAY_STTUS_CODE = 'A0001'
+                AND TO_CHAR(ORDPAY_TIME, 'YYYYMMDD') = TO_CHAR(SYSDATE-1,'YYYYMMDD')
+                ) C 
+            ON B.CORD_CODE = C.CORD_CODE
+            LEFT OUTER JOIN (
+                SELECT FRAN_CODE, TARGET_MONEY
+                FROM TB_TARGET
+                <![CDATA[
+                WHERE (TARGET_BASE_YEAR||(CASE WHEN TARGET_BASE_MONTH <10 THEN '0'||TARGET_BASE_MONTH END)) =TO_CHAR(SYSDATE,'YYYYMM')
+                ]]>
+                ) D
+            ON A.FRAN_CODE = D.FRAN_CODE    
+		WHERE A.HEAD_CODE = 'HTC01'
+		ORDER BY FRAN_CODE
+	</select>
+
+
+
+
+</mapper>

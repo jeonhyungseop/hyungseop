@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.head.commute.dao.IHeadCommuteDAO">
+
+
+<!-- 직원근태관리 : 출근 -->
+<insert id="insertGoToWork" parameterType="DclzVO">
+<selectKey resultType="int" order="BEFORE" keyProperty="dclz_seq">
+	SELECT SEQ_DCLZ.NEXTVAL FROM DUAL 
+</selectKey>
+/*kr.or.ddit.cfms.head.commute.dao.IHeadCommuteDAO.insertGoToWork*/
+ INSERT INTO tb_dclz (
+    DCLZ_SEQ,
+    EMP_ID,
+    DCLZ_STDRDE,
+    ATTEND_TIME,
+    DCLZ_SE_CODE
+) VALUES (
+    #{dclz_seq, jdbcType=NUMERIC},
+    #{emp_id, jdbcType=VARCHAR},
+	TO_CHAR(SYSDATE, 'yyyymmdd'),
+    TO_DATE(TO_CHAR(SYSDATE, 'yyyy/mm/dd hh24:mi'), 'yyyy/mm/dd hh24:mi'),
+    #{dclz_se_code, jdbcType=VARCHAR}
+)
+</insert>
+
+
+<!-- 직원근태관리 : 퇴근 -->
+<update id="updateGoHome" parameterType="DclzVO">
+/*kr.or.ddit.cfms.head.commute.dao.IHeadCommuteDAO.updateGoHome*/
+UPDATE TB_DCLZ
+   SET LVFFC_TIME = TO_DATE(TO_CHAR(SYSDATE, 'yyyy/mm/dd hh24:mi'), 'yyyy/mm/dd hh24:mi'),
+       WORKTIME_SM = (SELECT ROUND((TO_DATE(TO_CHAR(SYSDATE, 'HH24:MI'), 'HH24:MI') - TO_DATE(TO_CHAR(ATTEND_TIME, 'HH24:MI'),'HH24:MI'))*24)
+                        FROM TB_DCLZ
+                       WHERE EMP_ID = #{emp_id, jdbcType=VARCHAR}
+                         AND TO_CHAR(ATTEND_TIME, 'YYYYMMDD') = TO_CHAR(SYSDATE, 'YYYYMMDD'))
+ WHERE DCLZ_SEQ = #{dclz_seq, jdbcType=NUMERIC}
+</update>
+
+
+
+</mapper>

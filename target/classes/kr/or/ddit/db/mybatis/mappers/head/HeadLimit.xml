@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.head.limit.dao.IHeadLimitDAO">
+	
+	
+	<sql id="searchFrag">
+		<trim prefix="WHERE" prefixOverrides="AND" suffixOverrides="OR"> 
+			<if test="detailSearch.head_code!=null and @org.apache.commons.lang3.StringUtils@isNotBlank(detailSearch.head_code)">
+				HEAD_CODE = #{detailSearch.head_code}
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.searchWord)">
+				AND INSTR (FRAN_COMNM, #{searchMap.searchWord}) > 0
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.orsCode)">
+				AND INSTR (ORDER_STTUS_CODE, #{searchMap.orsCode}) > 0
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.oscCode)">
+				<choose>
+					<when test="searchMap.oscCode eq 'D0001'">
+						AND OUT_STTUS_CODE IS NULL
+					</when>	
+					<otherwise>
+						AND INSTR (OUT_STTUS_CODE, #{searchMap.oscCode}) > 0
+					</otherwise>			
+				</choose>
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.istCode)">
+				<choose>
+					<when test="searchMap.istCode eq 'D0001'">
+						AND IN_STTUS_CODE IS NULL
+					</when>	
+					<otherwise>
+						AND INSTR (IN_STTUS_CODE, #{searchMap.istCode}) > 0
+					</otherwise>			
+				</choose>
+				
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.minDate)">
+				AND ORDER_TIME  >= TO_DATE(#{searchMap.minDate}, 'YYYY-MM-DD') 
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.maxDate)">
+				<![CDATA[
+				AND ORDER_TIME  <= TO_DATE(#{searchMap.maxDate}, 'YYYY-MM-DD')
+				]]> 
+			</if>
+		</trim>	
+	</sql>
+	
+	<!-- 주문 총 갯 수 조회 -->
+	<select id="selectHeadLimitCount" parameterType="PagingVO" resultType="int">
+		/*kr.or.ddit.cfms.head.limit.dao.IHeadLimitDAO.selectHeadLimitCount*/
+		SELECT COUNT(*)
+		FROM V_ORDERS
+		<include refid="searchFrag" />
+	</select>
+	
+	
+	<!-- 주문 리스트 조회 -->
+	<select id="selectHeadLimitList" parameterType="pagingVO" resultType="OrdersVO">
+		/*kr.or.ddit.cfms.head.limit.dao.IHeadLimitDAO.selectHeadLimitList*/
+		SELECT *
+		FROM(
+		    SELECT ROWNUM RNUM, C.*
+		    FROM(
+		        SELECT *
+		        FROM V_ORDERS      
+			    <include refid="searchFrag" />
+				ORDER BY ORDER_NO DESC
+		    ) C
+		) D
+		WHERE RNUM BETWEEN #{startRow} AND #{endRow}
+	</select>
+	
+	<!-- 주문 상세 조회 -->
+	<select id="selectHeadLimitDetail" parameterType="String" resultType="OrdersVO">
+	/*kr.or.ddit.cfms.head.limit.dao.IHeadLimitDAO.selectHeadLimitDetail*/
+		SELECT *
+		FROM V_ORDERS
+		WHERE ORDER_NO = #{orderNo}
+	</select>
+	
+	<!-- 주문내역 조회 -->
+	<select id="selectHeadLimitOrderList" parameterType="String" resultType="OrdlistVO">
+	/*kr.or.ddit.cfms.head.limit.dao.IHeadLimitDAO.selectHeadLimitOrderList*/
+		SELECT ROWNUM RNUM, A.*
+		FROM(
+			SELECT
+			    ORDER_NO,
+			    ORDERLIST_SEQ,
+			    PROD_CODE,
+			    ORDER_QY,
+			    PROD_SUPLY_PC
+			FROM
+			    TB_ORDLIST
+			WHERE ORDER_NO =#{orderNo}
+			ORDER BY ORDERLIST_SEQ
+			) A
+		</select>
+
+	<resultMap type="OrdlistVO" id="order" autoMapping="true">
+		<id property="orderlist_seq" column="ORDERLIST_SEQ"/>
+		<association property="headInvenVO" javaType="HeadInvenVO" autoMapping="true">
+			<id property="prod_code" column="PROD_CODE"/>
+			<collection property="attachfileList" ofType="AttachfileVO" autoMapping="true">
+				<id property="att_seq" column="ATT_SEQ"/>
+			</collection>
+		</association>
+	</resultMap>
+	
+	<!-- 주문내역 관련 상세정보 조회 -->
+	<select id="selectHeadInvenProd" parameterType="String" resultMap="order">
+	/*kr.or.ddit.cfms.head.limit.dao.IHeadLimitDAO.selectHeadInvenProd*/
+		SELECT ROWNUM RNUM, A.*
+		FROM(
+		SELECT *
+        FROM TB_ORDLIST LEFT OUTER JOIN V_HEADINVEN
+            ON(TB_ORDLIST.PROD_CODE  =  V_HEADINVEN.PROD_CODE) 
+            LEFT OUTER JOIN TB_ATTACHFILE 
+            ON (V_HEADINVEN.ATT_FILENO = TB_ATTACHFILE.ATT_FILENO)
+        WHERE ORDER_NO = #{order_no}
+        ) A
+	</select>
+
+	<!-- 주문내역 총 행 수 조회 -->
+	<select id="totalRecode" parameterType="OrdersVO" resultType="int">
+	/*kr.or.ddit.cfms.head.limit.dao.IHeadLimitDAO.totalRecode*/
+		SELECT COUNT(*)
+		FROM TB_ORDLIST
+		WHERE ORDER_NO =#{order_no}
+	</select>
+	
+	<!-- TB_ORDER 상태코드 업데이트 -->
+	<update id="updateOrder" parameterType="Map" >
+	/*kr.or.ddit.cfms.head.limit.dao.IHeadLimitDAO.updateOrder*/
+		UPDATE TB_ORDER 
+		SET 
+			ORDER_STTUS_CODE = #{code} 
+			<if test="code eq 'A0001'">
+			,ORDER_CONFM_TIME = SYSDATE
+			</if>
+			<if test="code eq 'C0001'">
+			,ORDER_CNL_REASON = #{reason}
+			</if>
+		WHERE 
+			ORDER_NO = #{orderNO} 
+	</update>
+	
+	<!-- TB_OUT 상태코드 업데이트 -->
+	<update id="updateOut" parameterType="Map">
+	/*kr.or.ddit.cfms.head.limit.dao.IHeadLimitDAO.updateOut*/
+	    UPDATE TB_OUT
+	    SET
+	       OUT_STTUS_CODE = #{code}
+	       <if test="code eq 'A0001'">
+			,OUT_CMPT_TIME = SYSDATE
+			</if>
+			<if test="code eq 'C0001'">
+			,OUT_CNL_REASON = #{reason}
+			</if>
+		WHERE
+		    OUT_CODE = #{outCode}
+	</update>
+	
+	<!-- TB_IN 상태코드 업데이트 -->
+	<update id="updateIn" parameterType="String">
+	/*kr.or.ddit.cfms.head.limit.dao.IHeadLimitDAO.updateIn*/
+	   UPDATE TB_IN
+	   SET
+	       IN_STTUS_CODE = 'B0001'
+	   WHERE
+		    IN_NO =#{in_no}
+	</update>
+	
+	<!-- 생성할  out_code 조회 -->
+	<select id="getOutCode" resultType="String">
+	/*kr.or.ddit.cfms.head.limit.dao.IHeadLimitDAO.getOutCode*/
+		SELECT FN_NEXTOUT()
+		FROM DUAL
+	</select>
+	
+	
+	<!-- 출고지시서 생성 -->
+	<insert id="insertOut" parameterType="OutVO">
+	/*kr.or.ddit.cfms.head.limit.dao.IHeadLimitDAO.insertOut*/
+		INSERT INTO tb_out (
+		    out_code,
+		    head_code,
+		    out_sttus_code,
+		    out_time,
+		    order_no
+		) VALUES (
+		    FN_NEXTOUT(),
+		    #{head_code},
+		    'B0001',
+		    SYSDATE,
+		    #{order_no}
+		)
+	</insert>
+	
+	<!-- 입고지시서 생성 -->
+	<insert id="insertIn" parameterType="OrdersVO">
+		INSERT INTO TB_IN (
+		    IN_NO,
+		    FRAN_CODE,
+		    OUT_CODE,
+		    IN_STTUS_CODE
+		) VALUES (
+		    FN_NEXTIN(),
+		    #{fran_code},
+		    #{out_code},
+		    'D0001'
+		)
+	</insert>
+	
+	<!-- 출고지시서 내역 넣기 -->
+	<insert id="insertOutlist" parameterType="list">
+	/*kr.or.ddit.cfms.head.limit.dao.IHeadLimitDAO.insertOutlist*/
+	INSERT ALL
+		<foreach collection="list" item="out" index="idx">
+		INTO TB_OUTLIST (
+		    OUT_SEQ,
+		    PROD_CODE,
+		    OUT_CODE,
+		    OUT_QY
+		) VALUES (
+		    FN_OUTSEQ(),
+		    #{out.prod_code},
+		    #{out.out_code},
+		    #{out.out_qy}
+		)
+		</foreach>
+		select * from dual
+	</insert>
+	
+	<!-- 입고확인서 내역 넣기 -->
+	<insert id="insertInlist" parameterType="list">
+	/*kr.or.ddit.cfms.head.limit.dao.IHeadLimitDAO.insertInlist*/
+		INSERT ALL
+		<foreach collection="list" item="in" index="idx">
+		INTO TB_INLIST (
+		    IN_SEQ,
+		    PROD_CODE,
+		    IN_NO,
+		    IN_QY
+		) VALUES (
+		    FN_INSEQ(),
+		    #{in.prod_code},
+		    #{in.in_no},
+		    #{in.in_qy}
+		)
+		</foreach>
+		select * from dual
+	</insert>
+	
+	<!-- 출고내역에서 제품 코드와 수량 조회 -->
+	<select id="selectOutlist" parameterType="OrdersVO" resultType="kr.or.ddit.cfms.head.limit.vo.OutlistVO">
+	/*kr.or.ddit.cfms.head.limit.dao.IHeadLimitDAO.selectOutlist*/
+		SELECT
+		    OUT_SEQ,
+		    PROD_CODE,
+		    OUT_CODE,
+		    OUT_QY
+		FROM
+		    TB_OUTLIST
+		WHERE OUT_CODE = #{out_code}
+	</select>
+	
+	<!-- 출고 수량만큼 가맹본부 재고 감소 -->
+	<select id="updateOutHeinven" statementType="CALLABLE">
+	/*kr.or.ddit.cfms.head.limit.dao.IHeadLimitDAO.updateOutHeinven*/
+	{
+		CALL 
+		P_UPDATE_HEINVEN( 
+			#{P_LIST,mode=IN, typeHandler=kr.or.ddit.cfms.head.limit.controller.OutlistVOArrayTypeHandler},
+			#{P_CNT,mode=OUT,jdbcType=NUMERIC,javaType=int}
+		)
+	}
+	</select>
+	
+	
+	<!-- 출고 수량만큼 가맹점 재고 증가 -->
+	<update id="updateOutFrinven" parameterType="list">
+	/*kr.or.ddit.cfms.head.limit.dao.IHeadLimitDAO.updateOutFrinven*/
+		<foreach collection="list" item="list" index="idx" separator=";">
+		    UPDATE TB_FRINVEN
+			SET
+		        FRAN_NOWINVEN = FRAN_NOWINVEN + #{list.out_qy}
+			WHERE
+			    FRAN_CODE = #{list.fran_code}
+			AND   PROD_CODE = #{list.prod_code}
+		</foreach>
+	</update>
+</mapper>

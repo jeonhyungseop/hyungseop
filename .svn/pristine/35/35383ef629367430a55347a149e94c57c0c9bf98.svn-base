@@ -1,0 +1,39 @@
+package kr.or.ddit.cfms.head.education.service;
+
+import java.util.List;
+import java.util.Map;
+
+import kr.or.ddit.cfms.commons.vo.ComCodeGrpVO;
+import kr.or.ddit.cfms.head.education.vo.EducationVO;
+import kr.or.ddit.cfms.head.employee.vo.EmployeeVO;
+
+/**
+ * @author 진유리
+ * @since 2021. 06. 15
+ * @version 1.0
+ * @see javax.servlet.http.HttpServlet
+ * <pre>
+ * [[개정이력(Modification Information)]]
+ * 수정일                          수정자               수정내용
+ * ------------     --------    ----------------------
+ * 2021. 06. 15     진유리         최초작성
+ * Copyright (c) 2021 by DDIT All right reserved
+ * </pre>
+ */
+
+public interface IEducationService {
+	//공통코드 조회
+	public ComCodeGrpVO retrieveCodeList(String code);
+		
+	//교육 리스트 조회
+	public List<EducationVO> retrieveEducationList(String code);
+	
+	//교육 상세 내역 조회
+	public EducationVO retrieveEducation(Map<String, Object> pMap);
+	
+	//가맹본부의 직원 리스트 조회
+	public List<EmployeeVO> retrieveEmpList(String code);
+	
+	//교육 내용 삽입
+	public int insertEducation(EducationVO education);
+}		

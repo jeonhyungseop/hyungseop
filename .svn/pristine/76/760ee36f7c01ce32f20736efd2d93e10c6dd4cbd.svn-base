@@ -1,0 +1,111 @@
+package kr.or.ddit.cfms.head.vacationList.controller;
+
+import java.util.List;
+
+import javax.inject.Inject;
+import javax.servlet.http.HttpSession;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import kr.or.ddit.cfms.commons.vo.ComCodeVO;
+import kr.or.ddit.cfms.commons.vo.PagingVO;
+import kr.or.ddit.cfms.head.employee.vo.EmployeeVO;
+import kr.or.ddit.cfms.head.vacationList.service.IHeadVacationListService;
+import kr.or.ddit.cfms.head.vacationList.vo.VacationVO;
+
+/**
+ * @author 진예은
+ * @since 2021. 6. 15
+ * @version 1.0
+ * @see javax.servlet.http.HttpServlet
+ * <pre>
+ * [[개정이력(Modification Information)]]
+ * 수정일                          수정자               수정내용
+ * --------     --------    ----------------------
+ * 2021. 6. 15      진예은       휴가조회
+ * Copyright (c) 2021 by DDIT All right reserved
+ * </pre>
+ */
+@Controller
+@RequestMapping("/head/restList")
+public class HeadVacationListController {
+
+	@Inject
+	private IHeadVacationListService service;
+	
+	private final static Logger logger = LoggerFactory.getLogger(HeadVacationListController.class);
+	
+	@GetMapping
+	public String systemprodList(
+			Model model,
+			HttpSession session,
+			@RequestParam(value="page", required=false, defaultValue="1") int currentPage
+			,@RequestParam(value = "selector", required = false, defaultValue = "10") int selectorRow
+			) {
+		
+		String emp_id = (String) session.getAttribute("authId");
+		EmployeeVO employeeVO =  service.selectEmpBaseVacation(emp_id);
+		model.addAttribute("employeeVO", employeeVO);
+		
+		List<ComCodeVO> vacationComcode = service.selectComCodeVSC();
+		model.addAttribute("vacationComcode", vacationComcode);
+		
+		PagingVO<VacationVO> pagingVO = listForAjax(session, currentPage, selectorRow);
+		model.addAttribute("pagingVO", pagingVO);
+		
+		return "/head/vacationlist/vacationList";
+	}
+	
+	
+	@RequestMapping(produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+	@ResponseBody
+	public PagingVO<VacationVO> listForAjax(
+			HttpSession session
+			,@RequestParam(value="page", required=false, defaultValue="1") int currentPage
+			,@RequestParam(value = "selector", required = false, defaultValue = "10") int selectorRow
+			){
+		
+		String emp_id = (String) session.getAttribute("authId");
+		PagingVO<VacationVO> pagingVO = new PagingVO<>(selectorRow, 10);
+		pagingVO.setCurrentPage(currentPage);
+		pagingVO.setEmp_id(emp_id);
+		
+		int totalRecord = service.selectVacationCount(pagingVO);
+		pagingVO.setTotalRecord(totalRecord);
+		
+		List<VacationVO> vacationList = service.selectVacationList(pagingVO);
+		for(VacationVO vacationVO : vacationList) {
+			String vcatnStartde = vacationVO.getVcatn_startde();
+			String vcatnEndde = vacationVO.getVcatn_endde();
+			
+			if(vcatnStartde.length() == 8) {
+				vacationVO.setVcatn_startde(vcatnStartde.substring(0,4)+"-"+vcatnStartde.substring(4, 6) + "-" + vcatnStartde.substring(6, 8));
+			
+			}else {
+				vacationVO.setVcatn_startde(vcatnStartde.substring(0,4)+"-"+vcatnStartde.substring(5, 7) + "-" + vcatnStartde.substring(8, 10));
+			}
+			
+			if(vcatnEndde.length() == 8) {
+				vacationVO.setVcatn_endde(vcatnEndde.substring(0,4)+"-"+vcatnEndde.substring(4, 6) + "-" + vcatnEndde.substring(6, 8));
+			
+			}else {
+				vacationVO.setVcatn_endde(vcatnEndde.substring(0,4)+"-"+vcatnEndde.substring(5, 7) + "-" + vcatnEndde.substring(8, 10));
+			}
+		}
+		pagingVO.setDataList(vacationList);
+		
+		return pagingVO;
+	}
+	
+	
+	
+	
+}

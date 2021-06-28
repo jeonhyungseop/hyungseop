@@ -1,0 +1,693 @@
+<%--
+* [[개정이력(Modification Information)]]
+* 수정일                 수정자      수정내용
+* ----------  ---------  -----------------
+* 2021. 5. 20. 진예은          최초작성
+* 2021. 6. 14. 진유리          캘린더 UI,조회
+* Copyright (c) 2021 by DDIT All right reserved
+ --%>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>    
+<%@ taglib uri="http://java.sun.com/jsp/jstl/functions" prefix="fn" %>
+<%@ taglib uri="http://www.springframework.org/tags/form" prefix="form"%>
+<link rel="stylesheet" href="${cPath}/resources/assets/searchCSS.css">    
+<link rel="stylesheet" href="${cPath}/resources/assets/vendors/dripicons/webfont.css">
+<style>
+.dataArea {
+    height: 550px;
+}
+#calendar {
+   max-width: 1100px;
+   margin: 0 auto;
+}
+.bg-modal{
+	background-color: #826767!important;
+}
+.modal-title{
+	color : #ffffff;
+}
+</style>
+<div id="app">
+    <section class="section">
+    	<!-- card 영역 -->
+   		<div class="card">
+   			<!-- card-header 영역 -->
+			<div class="card-header">
+				<div class="row">
+					<div class="rowLeft">
+						<h4>교육일정 관리</h4>
+					</div>
+					<div class="rowRight">
+						<nav aria-label="breadcrumb" >
+							<ol class="breadcrumb">
+								<li class="breadcrumb-item"><a href="${cPath}/head/main">Dashboard</a></li>
+								<li class="breadcrumb-item active" aria-current="page">교육일정 관리</li>
+							</ol>
+						</nav>
+					</div>
+				</div>
+			</div>	
+			<!-- card-header 끝 -->
+			<!-- card-body 영역 -->
+			<div class="card-body">
+				<div id='external-events'></div>
+				<div id='calendar'></div>
+			</div>
+			<!-- card-body 끝 -->
+        </div>
+   		<!-- card 끝 -->
+   	</section>
+</div>
+
+<!-- 교육 일정 상세 정보 Modal -->
+<div class="modal fade text-left" id="eventDetail" tabindex="-1" role="dialog"
+    aria-labelledby="myModalLabel4" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-modal">
+                <h4 class="modal-title" id="eventDetailTitle"></h4>
+            </div>
+            <div class="modal-body">
+                <div id="detailContent">
+                	<div class="form-body">
+                       <div class="row col-12">
+                            <div class="col-md-3">
+                                <label>교육 분류</label>
+                            </div>
+                            <div class="col-md-9 form-group edu_cl"></div>
+                            <div class="col-md-3">
+                                <label>교육 장소</label>
+                            </div>
+                            <div class="col-md-9 form-group edu_place"></div>
+                            <div class="col-md-3">
+                                <label>담당 직원명</label>
+                            </div>
+                            <div class="col-md-9 form-group emp_name"></div>
+                            <div class="col-md-3">
+                                <label>담당 직원 이메일</label>
+                            </div>
+                            <div class="col-md-9 form-group emp_email"></div>
+                            <div class="col-md-3">
+                                <label>교육 시작 일시</label>
+                            </div>
+                            <div class="col-md-9 form-group edu_start"></div>
+                            <div class="col-md-3">
+                                <label>교육 종료 일시</label>
+                            </div>
+                            <div class="col-md-9 form-group edu_end"></div>
+                             <div class="col-md-3">
+                                <label>교육 내용</label>
+                            </div>
+                            <div class="col-md-9 form-group edu_content"></div>
+                      	 </div>
+	                </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light-warning" data-bs-dismiss="modal">
+                    <i class="bx bx-x d-block d-sm-none"></i>
+                    <span class="d-none d-sm-block">수정</span>
+                </button>
+                <button type="button" class="btn btn-light-danger" data-bs-dismiss="modal">
+                    <i class="bx bx-x d-block d-sm-none"></i>
+                    <span class="d-none d-sm-block">삭제</span>
+                </button>
+                <button type="button" class="btn btn-light-secondary" data-bs-dismiss="modal">
+                    <i class="bx bx-x d-block d-sm-none"></i>
+                    <span class="d-none d-sm-block">닫기</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- 교육 일정 상세 정보 Modal End-->
+
+<!-- 교육 일정 등록 Model -->
+<div class="modal fade text-left" id="RegisterModal" tabindex="-1" role="dialog" 
+    aria-labelledby="myModalLabel33" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-modal">
+                <h4 class="modal-title" id="myModalLabel33">교육일정 등록</h4>
+            </div>
+            <form:form modelAttribute="education" class="form form-horizontal" action="#" id="registerForm" method="post">
+                <div class="modal-body">
+                	<div class="form-body">
+	                    <div class="row">
+	                        <div class="col-md-3">
+	                            <label>교육 명</label>
+	                        </div>
+	                        <div class="col-md-9 form-group">
+	                            <input type="text" class="form-control" id="edc_nm" name="edc_nm" value="${education.edc_nm}"/>
+	                        </div>
+	                        <div class="col-md-3">
+	                            <label>교육 분류</label>
+	                        </div>
+	                        <div class="col-md-9 form-group">
+	                            <select class="choices form-select choices__input" id="edc_cl_code" name="edc_cl_code">
+									<option value="">전체</option>
+                                       <c:if test="${not empty EccCode}">
+	                                       	<c:forEach items="${EccCode.comCodeList}" var="ecc">
+	                                       		<option value="${ecc.com_code}" <c:if test="${ecc.com_code eq education.edc_cl_code}">selected</c:if>>${ecc.com_code_nm}</option>
+	                                       	</c:forEach>
+                                       </c:if>
+                                </select>
+	                        </div>
+	                        <div class="col-md-3">
+	                            <label>교육 시작일시</label>
+	                        </div>
+	                        <div class="col-md-9 form-group">
+	                            <input type="datetime-local"  class="form-control" id="start_date" value="${education.edc_start_time}"/>
+	                            <input type="hidden" name="edc_start_time"/>
+	                        </div>
+	                        <div class="col-md-3">
+	                            <label>교육 종료일시</label>
+	                        </div>
+	                        <div class="col-md-9 form-group">
+	                            <input type="datetime-local" class="form-control" id="end_date" value="${education.edc_end_time}"/>
+	                            <input type="hidden" name="edc_end_time"/>
+	                        </div>
+	                        <div class="col-md-3">
+	                            <label>담당 직원</label>
+	                        </div>
+	                        <div class="col-md-9 form-group">
+	                           <c:if test="${fn:length(code) eq 5}">
+	                           		<c:if test="${empList ne null}">
+	                           			<select class="choices form-select choices__input" id="emp_id" name="emp_id">
+	                           				<option value="">담당 직원을 선택하세요.</option>
+	                           				<c:forEach items="${empList}" var="emp">
+	                           					<option value="${emp.emp_id}" <c:if test="${emp.emp_id eq education.emp_id}">selected</c:if>>
+	                           						${emp.emp_nm}(${emp.deptList[0].dept_nm} ${emp.emp_clsf_code})
+	                           					</option>
+	                           				</c:forEach>
+	                           			</select>
+	                           		</c:if>
+	                           </c:if>
+	                        </div>
+	                        <div class="col-md-3">
+	                            <label>교육 장소</label>
+	                        </div>
+	                        <div class="col-md-9 form-group">
+	                            <input type="text" class="form-control" id="edc_place" name="edc_place" value="${education.edc_place}"/>
+	                        </div>
+	                        <div class="col-md-12">
+	                            <label>교육 내용</label>
+	                        </div>
+	                        <div class="col-md-12 form-group">
+	                            <textarea  class="form-control" id="edc_cn" rows="5" cols="100">${education.edc_cn}</textarea>
+	                        </div>
+	               		</div>	
+	               	</div>
+               	</div>
+            </form:form>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary ml-1 registerBtn">
+                    <i class="bx bx-check d-block d-sm-none"></i>
+                    <span class="d-none d-sm-block">저장</span>
+                </button>
+                <button type="button" class="btn btn-light-secondary CloseBtn" data-bs-dismiss="modal">
+                    <i class="bx bx-x d-block d-sm-none"></i>
+                    <span class="d-none d-sm-block">닫기</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- 교육 일정 등록 Model End-->
+<link href='${cPath}/resources/fullcalendar5.7/lib/main.css' rel='stylesheet' />
+<script src='${cPath}/resources/fullcalendar5.7/lib/main.js'></script>
+<script src='${cPath}/resources/fullcalendar5.7/lib/locales-all.js'></script>
+<script src='${cPath}/resources/js/ckeditor/ckeditor.js'></script>
+<script type="text/javascript" src="${cPath}/resources/js/moment.js"></script>
+<script type="text/javascript" src="${cPath}/resources/sweetalert2/sweetalert2.all.min.js"></script>
+<script type="text/javascript">
+CKEDITOR.replace('edc_cn');
+
+document.addEventListener('DOMContentLoaded', function() {
+    var calendarEl = document.getElementById('calendar');
+    var containerEl = document.getElementById('external-events');
+    var Draggable = FullCalendar.Draggable;
+    
+    new Draggable(containerEl, {
+      itemSelector: '.fc-event',
+      eventData: function(eventEl) {
+        return {
+          title: eventEl.innerText
+        };
+      }
+    });
+
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+      timeZone : 'local',
+      locale: 'ko',
+      headerToolbar: {
+        left: 'prev,next today',
+        center: 'title',
+        right: 'dayGridMonth,timeGridWeek,timeGridDay,listMonth'
+      },
+      navLinks: true, // can click day/week names to navigate views
+      businessHours: true, // display business hours
+      editable: true,
+      selectable: true,
+      events: function(info, successCallback, failureCallback){
+    	  var events = [];
+    	  $.ajax({
+              type:"GET",
+              url: "${cPath}/head/education/check" ,
+              success : function(resp) {
+            	  if (resp) {
+     				  $(resp).each(function(idx, edu) {
+     					  var colorVar = "#F2AB6D";
+     					  if(edu.edc_cl_code == '성교육'){colorVar="#BF755A";}
+     					  else if(edu.edc_cl_code == '예절교육'){colorVar="#D96E30";}
+     					  else if(edu.edc_cl_code == '런칭메뉴교육'){colorVar="#F2913D";}
+     					   events.push({id : edu.edc_code , title : edu.edc_nm, start: edu.edc_start_time
+     						   , end : edu.edc_end_time, color : colorVar});
+     				  });
+      			   }
+            	  successCallback(events);
+            	  console.log(events);
+              }, error : function(xhr, error, msg) {
+          		console.log(xhr);
+          		console.log(error);
+          		console.log(msg);
+          	}
+          });
+      }, //함수 끝
+      eventClick:function(info)  {
+    	  DetailSchedule(info);
+      },//eventClick클릭
+      select : function(info){
+    	  console.log("selected " + info.startStr + " to " + info.endStr + " on resource " + info.start + info.end + " view " + info.view.type);
+    	  var start_date = $("#start_date");
+    	  var end_date = $("#end_date");
+    	  var edc_start_time = $("#edc_start_time");
+    	  var edc_end_time = $("#edc_end_time");
+    	  var viewType = info.view.type;
+    	  var startStr = info.startStr;
+    	  var endStr = info.endStr;
+    	  
+    	  if(viewType == "dayGridMonth"){
+    		  var now = new Date(endStr);
+        	  var yesterday = new Date(now.setDate(now.getDate() - 1));
+        	  start_date.val(startStr+"T00:00:00");
+        	  end_date.val(getFormatDate(yesterday)+"T00:00:00");
+        	  edc_start_time.val(startStr + " 00:00");
+        	  edc_end_time.val(getFormatDate(yesterday)+" 00:00");
+    	  }else if(viewType == "timeGridWeek" || viewType == "timeGridDay"){
+    		  var num_start = startStr.indexOf("+");
+    		  var num_end = startStr.indexOf("+");
+    		  start_date.val(startStr.substr(0, num_start));
+    		  end_date.val(endStr.substr(0, num_end));
+    		  edc_start_time.val(startStr.substr(0, num_start));
+    		  edc_end_time.val(endStr.substr(0, num_end));
+    	  }
+    	  
+    	  $("#RegisterModal").modal('show');	
+    	  
+    	  $(".registerBtn").on("click", function(){
+    			if (checkUnrealInput()) {
+    				$.ajax({
+    					type : "POST",
+    					url : "${cPath}/head/education",
+    					data : {
+    						"edc_nm" : $("#edc_nm").val()
+    						, "edc_start_time" : $("input[name='edc_start_time']").val()
+    						, "edc_end_time" : $("input[name='edc_end_time']").val()
+    						, "edc_cl_code" : $("#edc_cl_code").val()
+    						, "emp_id" : $("#emp_id").val()
+    						, "edc_place" : $("#edc_place").val()
+    						, "edc_cn" : CKEDITOR.instances.edc_cn.getData()
+    					},
+    					success : function(resp) {
+    						var result = resp.result;
+							var edu = resp.edu;
+							
+    						if (result == "OK") {
+    							alert("일정등록에 성공했습니다.");
+    							$(".CloseBtn").trigger('click');
+    							
+    							 var colorVar = "#F2AB6D";
+    	     					 if(edu.edc_cl_code == '성교육'){colorVar="#BF755A";}
+    	     					 else if(edu.edc_cl_code == '예절교육'){colorVar="#D96E30";}
+    	     					 else if(edu.edc_cl_code == '런칭메뉴교육'){colorVar="#F2913D";}
+    	     					 
+    							calendar.addEvent( 
+    								{id : edu.edc_code 
+    								, title : edu.edc_nm
+    								, start: edu.edc_start_time
+    		     					, end : edu.edc_end_time
+    		     					, color : colorVar
+									, editable:true
+    								}
+    							)
+    						} else {
+    							alert("등록에 실패했습니다.");
+    						}
+    					}
+    				});
+    			} else {
+    				if (!checkUnrealInput()) {
+    					alert("빠진 정보가 있거나 잘못된 정보를 입력했는지 확인하세요.");
+    				};
+    			}
+    		});
+      },//select 끝
+      eventDrop : function(info){
+	   	  Swal.fire({
+	   		  title: '일정을 수정하시겠습니까?',
+	   		  showCancelButton: true,
+	   		  confirmButtonText: `확인`,
+	   		  cancelButtonText: '취소'
+	   		}).then((result) => {
+	   		  if (result.isConfirmed) {
+	   			var start_date = AlldateFormat(info.event.start);
+	    			var end_date = AlldateFormat(info.event.end);
+	    			$.ajax({
+						type : "POST",
+						url : "${cPath}/head/education/modify",
+						data : {
+							"edc_code" : info.event.id
+							, "edc_start_time" : start_date
+							, "edc_end_time" : end_date
+						},
+						success : function(resp) {
+							var result = resp.result;
+							
+							if (result == "OK") {
+								Swal.fire('수정완료!', '', 'success');
+							} else {
+								Swal.fire('수정에 실패했습니다.', '', 'info');
+							}
+						}
+					});//ajax끝
+	   		  }else{
+	   			  info.revert();
+	   		  }
+	   	  })
+      },//evnetDrop 끝
+      eventResize: function(info) {
+    	  Swal.fire({
+	   		  title: '일정을 수정하시겠습니까?',
+	   		  showCancelButton: true,
+	   		  confirmButtonText: `확인`,
+	   		  cancelButtonText: '취소'
+	   		}).then((result) => {
+	   		  if (result.isConfirmed) {
+	   			var start_date = AlldateFormat(info.event.start);
+	    			var end_date = AlldateFormat(info.event.end);
+	    			$.ajax({
+						type : "POST",
+						url : "${cPath}/head/education/modify",
+						data : {
+							"edc_code" : info.event.id
+							, "edc_start_time" : start_date
+							, "edc_end_time" : end_date
+						},
+						success : function(resp) {
+							var result = resp.result;
+							
+							if (result == "OK") {
+								Swal.fire('수정완료!', '', 'success');
+							} else {
+								Swal.fire('수정에 실패했습니다.', '', 'info');
+							}
+						}
+					});//ajax끝
+	   		  }else{
+	   			  info.revert();
+	   		  }
+	   	  })    
+       }//eventResize 끝
+   });//var calendar끝
+
+    calendar.render();
+  });
+
+function DetailSchedule(info){
+	 console.log("클릭 : " + info.event.id);
+	  $.ajax({
+         type:"GET",
+         url: "${cPath}/head/education/detail" ,
+         data : {"id" : info.event.id},
+         success : function(resp) {
+       	  var employee = resp.employeeList[0];
+       	  var dept = employee.deptList[0];
+       	  var content = '내용이 존재하지 않습니다.';
+       	  if(resp.edc_cn != null){
+       		  content = resp.edc_cn;
+       	  }
+       	  $("#eventDetailTitle").text(resp.edc_nm);
+       	  $(".edu_cl").text(resp.edc_cl_code);
+       	  $(".edu_content").html(content);
+       	  $(".edu_place").text(resp.edc_place);
+       	  $(".emp_name").text(employee.emp_nm+"("+dept.dept_nm+" "+employee.emp_clsf_code+")");
+       	  $(".emp_email").text(employee.emp_email);
+       	  $(".edu_start").text(resp.edc_start_time);
+       	  $(".edu_end").text(resp.edc_end_time);
+         }, error : function(xhr, error, msg) {
+     		console.log(xhr);
+     		console.log(error);
+     		console.log(msg);
+     	}
+     });
+	 $("#eventDetail").modal('show');
+}
+function AlldateFormat(date) {
+    let month = date.getMonth() + 1;
+    let day = date.getDate();
+    let hour = date.getHours();
+    let minute = date.getMinutes();
+    let second = date.getSeconds();
+
+    month = month >= 10 ? month : '0' + month;
+    day = day >= 10 ? day : '0' + day;
+    hour = hour >= 10 ? hour : '0' + hour;
+    minute = minute >= 10 ? minute : '0' + minute;
+    second = second >= 10 ? second : '0' + second;
+
+    return date.getFullYear() + '-' + month + '-' + day + ' ' + hour + ':' + minute + ':' + second;
+}
+function getFormatDate(date){
+    var year = date.getFullYear();
+    var month = (1 + date.getMonth());
+    month = month >= 10 ? month : '0' + month;
+    var day = date.getDate();
+    day = day >= 10 ? day : '0' + day;
+    return year + '-' + month + '-' + day;
+}
+$(".CloseBtn").on("click", function(){
+	$("#registerForm").clearForm();
+	hideMsg($("#edc_nm"));
+	hideMsg($("#start_date"));
+	hideMsg($("#end_date"));
+	hideSelectMsg($("#edc_cl_code"));
+	hideSelectMsg($("#emp_id"));
+	hideMsg($("#edc_place"));
+});
+$.fn.clearForm = function() {
+	return this.each(function() {
+		var type = this.type, tag = this.tagName.toLowerCase();
+		if (tag === 'form') {
+			return $(':input', this).clearForm();
+		}
+		if (type === 'text' || type === 'password' || type === 'hidden'
+				|| tag === 'textarea') {
+			this.value = '';
+		} else if (type === 'checkbox' || type === 'radio') {
+			this.checked = false;
+		} else if (tag === 'select') {
+			this.selectedIndex = -1;
+		}
+	});
+};
+$("#edc_nm").on("change", function(){
+	checkName();
+});
+$("#start_date").on("change", function(){
+	checkStartDate();
+});
+$("#end_date").on("change", function(){
+	checkEndDate();
+});
+$("#edc_cl_code").on("change", function(){
+	checkClCode();
+});
+$("#emp_id").on("change", function(){
+	checkEmpId();
+});
+$("#edc_place").on("change", function(){
+	checkPlace();
+});
+function checkName() {
+	var name = $("#edc_nm").val();
+	var oInput = $("#edc_nm");
+
+	hideMsg(oInput);
+
+	if (name != "") {
+		showSuccessMsg(oInput);
+		return true;
+	} else if (name == "") {
+		showErrorMsg(oInput);
+		return false;
+	}
+
+	return true;
+};
+function checkStartDate() {
+	var startdate = $("#start_date").val();
+	var oInput = $("#start_date");
+	var num = startdate.indexOf("T");
+	var date = startdate.substr(0, num);
+	var time = startdate.substr(num+1);
+	
+	hideMsg(oInput);
+	let today = moment();
+	let now = today.format('YYYY-MM-DD');
+	
+	if (date != '' && date >= now) {
+		showSuccessMsg(oInput);
+		$("input[name='edc_start_time']").val(date+" "+time);
+		return true;
+	} else if (date != '' && date < now) {
+		showErrorMsg(oInput);
+		return false;
+	} else if (date == '') {
+		showErrorMsg(oInput);
+		return false;
+	}
+
+	return true;
+};
+function checkEndDate() {
+	var enddate = $("#end_date").val();
+	var oInput = $("#end_date");
+	var num = enddate.indexOf("T");
+	var date = enddate.substr(0, num);
+	var time = enddate.substr(num+1);
+	var startdate = $("#start_date").val();
+	var startnum = startdate.indexOf("T");
+	var start_date = startdate.substr(0, startnum);
+	
+	var today = moment();
+	var now = today.format('YYYY-MM-DD');
+	hideMsg(oInput);
+	
+	console.log(date!='');
+	console.log(date >= start_date);
+	console.log(date < start_date);
+	console.log(date >= now);
+	console.log(date < now);
+	console.log(start_date);
+	console.log(date);
+	console.log(now);
+	if (date != '' &&  date >= start_date &&  date >= now) {
+		showSuccessMsg(oInput);
+		$("input[name='edc_end_time']").val(date+" "+time);
+		return true;
+	} else if (date != '' && date < start_date && date >= now) {
+		showErrorMsg(oInput);
+		return false;
+	} else if (date != '' && date >= start_date && date < now) {
+			showErrorMsg(oInput);
+			return false;
+	} else if (date != '' && date < start_date && date < now) {
+		showErrorMsg(oInput);
+		return false;
+	}else if (date == '') {
+		showErrorMsg(oInput);
+		return false;
+	}
+
+	return true;
+};
+function checkClCode() {
+	var clCode = $("#edc_cl_code").val();
+	var oInput = $("#edc_cl_code");
+
+	hideSelectMsg(oInput);
+
+	if(!clCode) {
+		showSelectErrorMsg(oInput);
+		return false;
+	} else {
+		showSelectSuccessMsg(oInput);
+		return true;
+	}
+
+	return true;
+};
+function checkEmpId() {
+	var empId = $("#emp_id").val();
+	var oInput = $("#emp_id");
+
+	hideSelectMsg(oInput);
+
+	if (!empId) {
+		showSelectErrorMsg(oInput);
+		return false;
+	} else {
+		showSelectSuccessMsg(oInput);
+		return true;
+	}
+
+	return true;
+};
+function checkPlace() {
+	var place = $("#edc_place").val();
+	var oInput = $("#edc_place");
+
+	hideMsg(oInput);
+
+	if (place != "") {
+		showSuccessMsg(oInput);
+		return true;
+	} else if (place == "") {
+		showErrorMsg(oInput);
+		return false;
+	}
+
+	return true;
+};
+function checkUnrealInput() {
+	if (checkName() 
+		& checkStartDate()
+		& checkEndDate()
+		& checkClCode()
+		& checkEmpId()
+		& checkPlace()
+	) {
+		return true;
+	} else {
+		return false;
+	}
+}
+function setFocusToInputObject(obj) {
+	obj.focus();
+}
+function hideMsg(obj) {
+	obj.attr("class", "form-control");
+	obj.show();
+}
+function hideSelectMsg(obj) {
+	obj.attr("class", "choices form-select choices__input");
+	obj.show();
+}
+function showErrorMsg(obj) {
+	obj.attr("class", "form-control is-invalid");
+	obj.show();
+}
+function showSuccessMsg(obj) {
+	obj.attr("class", "form-control is-valid");
+	obj.show();
+}
+function showSelectErrorMsg(obj) {
+	obj.attr("class", "choices form-select choices__input is-invalid");
+	obj.show();
+}
+function showSelectSuccessMsg(obj) {
+	obj.attr("class", "choices form-select choices__input is-valid");
+	obj.show();
+}
+</script>  

@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.fran.commons.dao.IFranMainDAO">
+
+<select id="selectFranDashOrd" resultType="DashVO">
+/*kr.or.ddit.cfms.fran.commons.dao.IFranMainDAO.selectFranDashOrd*/
+SELECT DASH_ID, DASH_SE, DASH_ORD, DASH_NM, DASH_DC 
+FROM TB_DASH
+WHERE DASH_SE = 'C0001'
+<![CDATA[
+  AND DASH_ORD > 2 
+]]>
+ORDER BY DASH_ORD
+</select>
+
+<update id="updateFranDashOrd" parameterType="DashListVO">
+/*kr.or.ddit.cfms.fran.commons.dao.IFranMainDAO.updateFranDashOrd*/
+<foreach collection="dashListVO" index="index" item="dash" separator=";" open="DECLARE BEGIN" close="; END;">
+update tb_dash
+   set dash_ord = (#{index}+3)
+ where dash_id = #{dash.dash_id, jdbcType=VARCHAR }
+ </foreach>
+</update>
+
+<!-- 가맹점 보름 매출 조회 -->
+<select id="selectDaySaleByFranList" parameterType="Map" resultType="CustomerorderVO">
+	/*kr.or.ddit.cfms.fran.commons.dao.IFranMainDAO.selectDaySaleByFranList*/
+	
+	SELECT *
+	FROM (
+	SELECT ROWNUM RNUM, E.*
+		FROM (
+			SELECT TO_CHAR(C.DT,'MMDD') DAYS, NVL(SALESUM,0) TOTAL_ORDMONEY
+				FROM V_PRESYSDATE30 C LEFT OUTER JOIN  
+				            (
+				                SELECT TO_CHAR(A.ORDPAY_TIME,'YYYYMMDD' ) SALEDAY, SUM(A.ORDPAY_MONEY) SALESUM
+				                FROM TB_SALE A LEFT OUTER JOIN TB_CUSTOMERORDER B
+				                            ON A.CORD_CODE = B.CORD_CODE
+				                WHERE B.FRAN_CODE = #{franCode}
+				                      AND A.PAY_STTUS_CODE = 'A0001'
+				                GROUP BY TO_CHAR(A.ORDPAY_TIME,'YYYYMMDD' )
+				            ) D
+				             ON TO_CHAR(C.DT,'YYYYMMDD') = D.SALEDAY
+				ORDER BY TO_CHAR(C.DT,'YYYYMMDD')
+		) E
+	) 
+	WHERE RNUM > 15
+</select>
+
+<!-- 공지사항 총 레코드 수 조회-->
+<select id="selectBoardCount" parameterType="PagingVO" resultType="int">
+	/*kr.or.ddit.cfms.fran.commons.dao.IFranMainDAO.selectBoardCount */
+	SELECT COUNT(*)
+	FROM TB_BOARD
+	WHERE HEAD_CODE=#{head_code}
+</select>
+
+<!-- 공지사항 조회 -->
+<select id="selectBoardList" parameterType="PagingVO" resultType="BoardVO">
+	/*kr.or.ddit.cfms.fran.commons.dao.IFranMainDAO.selectBoardList */
+		SELECT B.*
+		FROM (
+		    SELECT A.*, ROWNUM RNUM
+			FROM(
+				SELECT BOARD_SEQ,HEAD_CODE, BOARD_TITLE                 
+				, BOARD_CN, BOARD_WRITER_TYCODE, BOARD_WRITER    
+				, BOARD_TIME,BOARD_HIT ,BOARD_SE_CODE,ATT_FILENO,BOARD_DEL_AT       
+				FROM TB_BOARD
+				WHERE HEAD_CODE=#{head_code}
+				ORDER BY BOARD_SEQ DESC)A
+	   		)B 
+	    <![CDATA[
+	   WHERE RNUM >= #{startRow} AND RNUM<= #{endRow}
+	   ]]>
+</select>
+
+<!-- 재고 총 레코드 갯 수  -->
+<select id="selectFranInvenCount" parameterType="PagingVO" resultType="int">
+	/*kr.or.ddit.cfms.fran.commons.dao.IFranMainDAO.selectFranInvenCount */
+	SELECT COUNT(*)
+	FROM V_FRANINVEN
+	WHERE FRAN_CODE = #{detailSearch.fran_code} AND USE_AT = 'Y'
+</select>
+
+
+<!-- 재고 리스트 조회  -->
+<select id="selectFranInvenList" parameterType="PagingVO" resultMap="franInvenAttMap">
+	/*kr.or.ddit.cfms.fran.commons.dao.IFranMainDAO.selectFranInvenList */
+	SELECT *
+	FROM(
+	    SELECT ROWNUM RNUM, A.*
+	    FROM(
+	        SELECT *
+	        FROM V_FRANINVEN JOIN TB_COMCODE ON V_FRANINVEN.PROD_UNIT_CODE = TB_COMCODE.COM_CODE
+	        WHERE FRAN_CODE = #{detailSearch.fran_code} AND V_FRANINVEN.USE_AT = 'Y' AND TB_COMCODE.COM_CODE_GRP = 'PUC'
+	        ORDER BY PROD_CODE ASC
+	    ) A
+	) B LEFT OUTER JOIN TB_ATTACHFILE ON B.ATT_FILENO = TB_ATTACHFILE.ATT_FILENO
+	<![CDATA[
+	WHERE RNUM >= #{startRow} AND RNUM <= #{endRow}
+	]]>
+</select>
+
+<resultMap type="FranInvenVO" id="franInvenAttMap" autoMapping="true">
+	<id property="prod_code" column="PROD_CODE"/>
+	<collection property="attachfileList" ofType="AttachfileVO" autoMapping="true">
+		<id property="att_seq" column="ATT_SEQ"/>
+	</collection>
+</resultMap>
+
+
+<!-- 매장주문 리스트 조회  -->
+<select id="selectCordClA0001" parameterType="String" resultType="CordClVO">
+/*kr.or.ddit.cfms.fran.commons.dao.IFranMainDAO.selectCordClA0001 */
+	SELECT *
+		FROM
+		(
+		    SELECT ROWNUM RNUM, D.*
+		    FROM 
+		    ( 
+                SELECT TO_CHAR(A.DT,'YYYYMMDD') ORDPAY_TIME, COUNT(C.CORD_CL_CODE) CNT
+                FROM V_PRESYSDATE30 A LEFT OUTER JOIN (SELECT * FROM TB_SALE WHERE PAY_STTUS_CODE  = 'A0001') B
+                     ON TO_CHAR(A.DT,'YYYYMMDD') = TO_CHAR(B.ORDPAY_TIME,'YYYYMMDD')  
+                     LEFT OUTER JOIN (SELECT * FROM TB_CUSTOMERORDER WHERE FRAN_CODE = #{franCode} AND CORD_CL_CODE = 'A0001') C
+                     ON  B.CORD_CODE = C.CORD_CODE
+                GROUP BY TO_CHAR(A.DT,'YYYYMMDD')
+                ORDER BY ORDPAY_TIME
+		    ) D
+		)
+	WHERE RNUM > 15
+</select>
+
+<!-- 테이크아웃주문 리스트 조회  -->
+<select id="selectCordClB0001" parameterType="String" resultType="CordClVO">
+/*kr.or.ddit.cfms.fran.commons.dao.IFranMainDAO.selectCordClB0001 */
+	SELECT *
+		FROM
+		(
+		    SELECT ROWNUM RNUM, D.*
+		    FROM 
+		    ( 
+                SELECT TO_CHAR(A.DT,'YYYYMMDD') ORDPAY_TIME, COUNT(C.CORD_CL_CODE) CNT
+                FROM V_PRESYSDATE30 A LEFT OUTER JOIN (SELECT * FROM TB_SALE WHERE PAY_STTUS_CODE  = 'A0001') B
+                     ON TO_CHAR(A.DT,'YYYYMMDD') = TO_CHAR(B.ORDPAY_TIME,'YYYYMMDD')  
+                     LEFT OUTER JOIN (SELECT * FROM TB_CUSTOMERORDER WHERE FRAN_CODE = #{franCode} AND CORD_CL_CODE = 'B0001') C
+                     ON  B.CORD_CODE = C.CORD_CODE
+                GROUP BY TO_CHAR(A.DT,'YYYYMMDD')
+                ORDER BY ORDPAY_TIME
+		    ) D
+		)
+	WHERE RNUM > 15
+</select>
+
+<!-- 배달주문 리스트 조회  -->
+<select id="selectCordClC0001" parameterType="String" resultType="CordClVO">
+/*kr.or.ddit.cfms.fran.commons.dao.IFranMainDAO.selectCordClC0001 */
+	SELECT *
+		FROM
+		(
+		    SELECT ROWNUM RNUM, D.*
+		    FROM 
+		    ( 
+                SELECT TO_CHAR(A.DT,'YYYYMMDD') ORDPAY_TIME, COUNT(C.CORD_CL_CODE) CNT
+                FROM V_PRESYSDATE30 A LEFT OUTER JOIN (SELECT * FROM TB_SALE WHERE PAY_STTUS_CODE  = 'A0001') B
+                     ON TO_CHAR(A.DT,'YYYYMMDD') = TO_CHAR(B.ORDPAY_TIME,'YYYYMMDD')  
+                     LEFT OUTER JOIN (SELECT * FROM TB_CUSTOMERORDER WHERE FRAN_CODE = #{franCode} AND CORD_CL_CODE = 'C0001') C
+                     ON  B.CORD_CODE = C.CORD_CODE
+                GROUP BY TO_CHAR(A.DT,'YYYYMMDD')
+                ORDER BY ORDPAY_TIME
+		    ) D
+		)
+	WHERE RNUM > 15
+</select>
+
+<select id="selectTargetRate" parameterType="String" resultType="double">
+	/*kr.or.ddit.cfms.fran.commons.dao.IFranMainDAO.selectTargetRate */
+	SELECT
+			NVL(ROUND((
+			    (
+			        SELECT NVL(SUM(A.ORDPAY_MONEY),0)
+			        FROM TB_SALE A LEFT OUTER JOIN TB_CUSTOMERORDER B
+			                    ON A.CORD_CODE = B.CORD_CODE
+			        WHERE A.PAY_STTUS_CODE = 'A0001'
+			                      AND B.FRAN_CODE = #{franCode}
+			                      AND TO_CHAR(A.ORDPAY_TIME, 'YYYYMM') = TO_CHAR(SYSDATE,'YYYYMM')
+			    )/
+			    (
+			        SELECT NVL(TARGET_MONEY,1) TARGET_MONEY
+			        FROM TB_TARGET
+			        WHERE FRAN_CODE = #{franCode}
+			        	  <![CDATA[
+			              AND   (TARGET_BASE_YEAR||(CASE WHEN TARGET_BASE_MONTH <10 THEN '0'||TARGET_BASE_MONTH ELSE TARGET_BASE_MONTH END)) =TO_CHAR(SYSDATE,'YYYYMM')
+			    		  ]]>
+			    ) 
+			) * 100, 3 ),0) AVG
+		FROM DUAL
+</select>
+</mapper>

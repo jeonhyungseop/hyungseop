@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.fran.inven.dao.IFranInvenDAO">
+	<sql id="searchFrag">
+		<if test="searchMap!=null and @org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.searchWord)">
+        	AND INSTR(UPPER(PROD_NM), UPPER(#{searchMap.searchWord})) > 0
+        </if>
+         <if test="searchMap.searchMax!=null and @org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.searchMax)">
+	        <choose>
+	        	<when test="searchMap.searchMax eq 'maxDown'">
+	        		<![CDATA[
+	        		AND FRAN_PROINVEN > FRAN_NOWINVEN
+	        		]]> 
+	        	</when>
+	        	<otherwise>
+	        		<![CDATA[
+	        		AND FRAN_PROINVEN <= FRAN_NOWINVEN
+	        		]]> 
+	        	</otherwise>
+	        </choose>
+        </if>
+	</sql>
+	<select id="selectFranInvenCount" parameterType="PagingVO" resultType="int">
+		SELECT COUNT(*)
+		FROM V_FRANINVEN
+		WHERE FRAN_CODE = #{detailSearch.fran_code} AND USE_AT = 'Y'
+		<include refid="searchFrag" />
+	</select>
+	<resultMap type="FranInvenVO" id="franInvenMap" autoMapping="true">
+		<id property="prod_code" column="PROD_CODE"/>
+		<association property="headProdVO" javaType="HeadProdVO" autoMapping="true"/>
+	</resultMap>
+	<select id="selectFranInvenList" parameterType="PagingVO" resultMap="franInvenAttMap">
+		SELECT *
+		FROM(
+		    SELECT ROWNUM RNUM, A.*
+		    FROM(
+		        SELECT *
+		        FROM V_FRANINVEN JOIN TB_COMCODE ON V_FRANINVEN.PROD_UNIT_CODE = TB_COMCODE.COM_CODE
+		        WHERE FRAN_CODE = #{detailSearch.fran_code} AND V_FRANINVEN.USE_AT = 'Y' AND TB_COMCODE.COM_CODE_GRP = 'PUC'
+		        <include refid="searchFrag" />
+		        ORDER BY PROD_CODE ASC
+		    ) A
+		) B LEFT OUTER JOIN TB_ATTACHFILE ON B.ATT_FILENO = TB_ATTACHFILE.ATT_FILENO
+		<![CDATA[
+		WHERE RNUM >= #{startRow} AND RNUM <= #{endRow}
+		]]>
+	</select>
+	<resultMap type="FranInvenVO" id="franInvenAttMap" autoMapping="true">
+		<id property="prod_code" column="PROD_CODE"/>
+		<collection property="attachfileList" ofType="AttachfileVO" autoMapping="true">
+			<id property="att_seq" column="ATT_SEQ"/>
+		</collection>
+	</resultMap>
+	<select id="selectFranInven" parameterType="FranInvenVO" resultMap="franInvenAttMap">
+		SELECT *
+		FROM V_FRANINVEN LEFT OUTER JOIN TB_ATTACHFILE ON V_FRANINVEN.ATT_FILENO = TB_ATTACHFILE.ATT_FILENO
+		WHERE FRAN_CODE = #{fran_code}
+		AND PROD_CODE = #{prod_code}		
+	</select>
+	<resultMap type="FranProdVO" id="franProdMap" autoMapping="true">
+		<id property="att_fileno" column="ATT_FILENO"/>
+		<collection property="attachfileList" ofType="AttachfileVO" autoMapping="true">
+			<id property="att_fileno" column="ATT_FILENO"/>
+		</collection>
+	</resultMap>
+	<delete id="deleteFranInven" parameterType="FranInvenVO">
+		UPDATE TB_FRINVEN
+		SET 
+			USE_AT = 'N'
+		WHERE FRAN_CODE = #{fran_code} AND PROD_CODE IN
+	<foreach collection="del_prod_codes" item="delProdCode" open="(" close=")" separator=",">
+		 #{delProdCode}
+	</foreach>
+	</delete>
+	<select id="selectFranProdList" parameterType="FranInvenVO" resultMap="franInvenAttMap">
+		SELECT *
+		FROM V_FRANINVEN JOIN TB_COMCODE ON V_FRANINVEN.PROD_UNIT_CODE = TB_COMCODE.COM_CODE
+		LEFT OUTER JOIN TB_ATTACHFILE ON V_FRANINVEN.ATT_FILENO = TB_ATTACHFILE.ATT_FILENO
+		WHERE FRAN_CODE = #{fran_code} AND V_FRANINVEN.USE_AT = 'Y' AND TB_COMCODE.COM_CODE_GRP = 'PUC'
+		AND PROD_CODE IN
+	<foreach collection="update_prod_codes" item="upProdCode" open="(" close=")" separator=",">
+		#{upProdCode}
+	</foreach>
+	</select>
+	<update id="updateFranInven" parameterType="FranInvenVO">
+		UPDATE TB_FRINVEN
+		SET
+			FRAN_PROINVEN = #{fran_proinven,jdbcType=NUMERIC}
+		WHERE PROD_CODE = #{prod_code} AND FRAN_CODE = #{fran_code}
+	</update>
+</mapper>

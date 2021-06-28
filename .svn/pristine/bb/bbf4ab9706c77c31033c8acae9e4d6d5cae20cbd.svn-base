@@ -1,0 +1,55 @@
+package kr.or.ddit.cfms.head.salesall.service;
+
+import java.util.List;
+
+import javax.inject.Inject;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
+import kr.or.ddit.cfms.commons.vo.PagingVO;
+import kr.or.ddit.cfms.head.prod.vo.HeadProdVO;
+import kr.or.ddit.cfms.head.salesall.dao.IHeadSalesallDAO;
+import kr.or.ddit.cfms.utils.ImageBase64Util;
+
+@Service
+public class HeadSalesallServiceImpl implements IHeadSalesallService{
+	private static final Logger logger = LoggerFactory.getLogger(HeadSalesallServiceImpl.class);
+	private ImageBase64Util imageBase64Util = new ImageBase64Util();;
+	@Inject
+	private IHeadSalesallDAO salesallDAO;
+	
+	@Override
+	public void selectMainInfo(PagingVO<HeadProdVO> pagingVO) {
+		int totalRecord = retrieveSalesallCount(pagingVO);
+		pagingVO.setTotalRecord(totalRecord);
+		// 재고 조회
+		List<HeadProdVO> headsalesallVO = retrieveSalesallList(pagingVO);
+		// 이미지 처리
+		for(HeadProdVO headProdVO : headsalesallVO) {
+			if(headProdVO.getAtt_fileno() != null) {
+				imageBase64Util.imageBase(headProdVO.getAttachfileList());
+			}
+		}
+		
+		/** 결과 데이터 송신 */ 
+		// 재고 조회한 데이터 저장
+		pagingVO.setDataList(headsalesallVO);
+		
+	}
+
+	@Override
+	public int retrieveSalesallCount(PagingVO<HeadProdVO> pagingVO) {
+		return salesallDAO.selectSalesallCount(pagingVO);
+	}
+
+	@Override
+	public List<HeadProdVO> retrieveSalesallList(PagingVO<HeadProdVO> pagingVO) {
+		return salesallDAO.selectSalesallList(pagingVO);
+	}
+
+
+	
+
+}

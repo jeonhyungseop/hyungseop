@@ -1,0 +1,128 @@
+package kr.or.ddit.cfms.fran.pos.controller;
+
+import java.util.List;
+
+import javax.inject.Inject;
+import javax.servlet.http.HttpSession;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import kr.or.ddit.cfms.commons.vo.ComCodeVO;
+import kr.or.ddit.cfms.commons.vo.PagingVO;
+import kr.or.ddit.cfms.fran.pos.service.IPosOrderService;
+import kr.or.ddit.cfms.fran.pos.vo.FranGoodsVO;
+import kr.or.ddit.cfms.head.prod.vo.HeadProdVO;
+
+/**
+ * @author 이진수
+ * @since 2021. 5. 19
+ * @version 1.0
+ * @see javax.servlet.http.HttpServlet
+ * <pre>
+ * [[개정이력(Modification Information)]]
+ * 수정일                          수정자               수정내용
+ * --------     --------    ----------------------
+ * 2021. 5. 19      작성자명       최초작성
+ * Copyright (c) 2021 by DDIT All right reserved
+ * </pre>
+ */
+@Controller
+@RequestMapping("/fran/posorder")
+public class PosOrderController {
+	private static final Logger logger = LoggerFactory.getLogger(PosOrderController.class);
+	
+	@Inject
+	private IPosOrderService service;
+	
+	@GetMapping
+	public String posOrderList(
+			Model model
+			, HttpSession session
+			) {
+		String fran_code = (String) session.getAttribute("code");
+		String head_code = fran_code.substring(0, 5);
+		String goods_cl_code = "A0001";
+		FranGoodsVO franGoodsVO = new FranGoodsVO(head_code, fran_code);
+		
+		
+		List<ComCodeVO> comCodeList = service.retrieveComCodeList(head_code);
+		List<FranGoodsVO> franGoodsList = listForAjax(goods_cl_code, session);
+		
+		
+		model.addAttribute("comCodeList", comCodeList);
+		model.addAttribute("franGoodsList", franGoodsList);
+		return "/fran/pos/posorderList";
+		
+	}
+	
+	@RequestMapping(produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+	@ResponseBody
+	public List<FranGoodsVO> listForAjax(
+		@RequestParam(value="serachCatecory", required=false, defaultValue="A0001") String goods_cl_code 
+		, HttpSession session
+	) {
+		/** 파라미터 조회 - 세션에 담긴 가맹본부 코드 저장 */
+		String fran_code = (String) session.getAttribute("code");
+		String head_code = fran_code.substring(0, 5);
+		FranGoodsVO franGoodsVO = new FranGoodsVO(head_code, fran_code);
+		franGoodsVO.setGoods_cl_code(goods_cl_code);
+		/** 결과자료 객체생성 */
+		
+		/** 파라미터 검증 */
+		
+		/** 서비스 데이터 구성 */ 
+		
+		/** 서비스 요청 */ 
+		List<FranGoodsVO> franGoodsList = service.retrieveFranGoodsList(franGoodsVO);
+//		logger.info("{}", pagingVO.getDataList());
+		/** 결과 전송 */
+		return franGoodsList;
+	}
+	
+	@GetMapping("/detail")
+	public String posOrderDetail() {
+		return "/fran/pos/posorderDetail";
+		
+	}
+	
+	@GetMapping("/form")
+	public String posOrderForm() {
+		return "/fran/pos/posorderForm";
+		
+	}
+	
+	@PostMapping
+	public String insert() {
+		return null;
+		
+	}
+	
+	@GetMapping("/modify")
+	public String updateForm() {
+		return "/fran/pos/posorderForm";
+		
+	}
+	
+	@PutMapping
+	public String update() {
+		return null;
+		
+	}
+	
+	@DeleteMapping
+	public String delete() {
+		return null;
+		
+	}
+}

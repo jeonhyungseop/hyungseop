@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.head.commons.dao.IHeadMainDAO">
+
+<select id="selectDashOrd" resultType="DashVO">
+/*kr.or.ddit.cfms.head.commons.dao.IHeadMainDAO.selectDashOrd*/
+SELECT DASH_ID, DASH_SE, DASH_ORD, DASH_NM, DASH_DC 
+FROM TB_DASH
+WHERE DASH_SE = 'B0001'
+<![CDATA[
+  AND DASH_ORD > 2 
+]]>
+ORDER BY DASH_ORD
+</select>
+
+<update id="updateDashOrd" parameterType="DashListVO">
+/*kr.or.ddit.cfms.head.commons.dao.IHeadMainDAO.updateDashOrd*/
+<foreach collection="dashListVO" index="index" item="dash" separator=";" open="DECLARE BEGIN" close="; END;">
+update tb_dash
+   set dash_ord = (#{index}+3)
+ where dash_id = #{dash.dash_id, jdbcType=VARCHAR }
+ </foreach>
+</update>
+
+
+</mapper>

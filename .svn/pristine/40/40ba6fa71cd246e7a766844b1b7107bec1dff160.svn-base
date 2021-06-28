@@ -1,0 +1,112 @@
+package kr.or.ddit.cfms.head.dayreport.service;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.inject.Inject;
+
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.ui.Model;
+
+import kr.or.ddit.cfms.fran.commons.vo.FranchiseVO;
+import kr.or.ddit.cfms.head.dayreport.dao.IHeadDayReportDAO;
+import kr.or.ddit.cfms.head.dayreport.vo.CustomerorderVO;
+import kr.or.ddit.cfms.head.dayreport.vo.SaleVO;
+
+/**
+ * @author 배수진
+ * @since 2021. 6. 11
+ * @version 1.0
+ * @see javax.servlet.http.HttpServlet
+ * <pre>
+ * [[개정이력(Modification Information)]]
+ * 수정일                          수정자               수정내용
+ * --------     --------    ----------------------
+ * 2021. 6. 11      배수진       최초작성
+ * Copyright (c) 2021 by DDIT All right reserved
+ * </pre>
+ */
+@Service
+public class HeadDayReportSerivceImpl implements IHeadDayReportService {
+	private Logger logger = LoggerFactory.getLogger(HeadDayReportSerivceImpl.class);
+	
+	
+	private IHeadDayReportDAO dayReportDAO;
+	
+	@Inject
+	public void setDayReportDAO(IHeadDayReportDAO dayReportDAO) {
+		this.dayReportDAO = dayReportDAO;
+		logger.info("주입된 codeDAO : {}", dayReportDAO.getClass().getName());
+	}
+
+	
+	/**
+	 * @param params
+	 * 초기 데이터 조회
+	 */
+	public void settingDatas(Model model, String headCode) {
+		
+		// 가맹점 리스트
+		Map<String,String> param = new HashMap<>();
+		param.put("headCode",headCode);
+		List<FranchiseVO> franlist = new ArrayList<>();
+		franlist = retriveFranchiseList(param);
+		
+		//월 통계 내역
+		Map<String, Object> statistics = new HashMap<>();
+		int dayTotal = dayReportDAO.selectDayTotalSale(headCode);
+		int momthTotal = dayReportDAO.selectMonthTotalSale(headCode);
+		double nowStatistics= dayReportDAO.selectStatisticsSale(headCode);
+		String topFran = dayReportDAO.selectTopFranchise(headCode);
+		String endFran = dayReportDAO.selectEndFranshise(headCode);
+		statistics.put("dayTotal",dayTotal);
+		statistics.put("momthTotal",momthTotal);
+		statistics.put("nowStatistics",nowStatistics);
+		statistics.put("topFran",topFran);
+		statistics.put("endFran",endFran);
+		
+		//지역별 매출
+		List<SaleVO> areaList = dayReportDAO.selectAreaTotalSale(headCode);
+		
+		model.addAttribute("franlist", franlist);
+		model.addAttribute("statistics", statistics);
+		model.addAttribute("areaList", areaList);
+	}
+	
+	/**
+	 * @param head_code
+	 * @return List<FranchiseVO>
+	 * 해당 가맹본부에 존재하는 가맹점 리스트 조회
+	 */
+	@Override
+	public List<FranchiseVO> retriveFranchiseList(Map<String, String> params) {
+		return dayReportDAO.selectFranchiseList(params);
+	}
+
+
+	/**
+	 * @param params
+	 * @return List<CustomerorderVO>
+	 * 가맹점 별 매출 판매 리스트
+	 */
+	@Override
+	public List<CustomerorderVO> retriveDaySaleList(Map<String, String> params) {
+		
+		List<CustomerorderVO> result = new ArrayList<>();
+		
+		if(StringUtils.isNotBlank(params.get("franCode"))) {
+			result = dayReportDAO.selectDaySaleByFranList(params);
+		}else {
+			result =  dayReportDAO.selectDaySaleList(params);
+		}
+		
+		return result;
+	}
+
+
+}

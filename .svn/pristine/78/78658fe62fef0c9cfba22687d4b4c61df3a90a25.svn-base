@@ -1,0 +1,95 @@
+@charset "UTF-8";
+
+/* 검색 스타일 */
+.table-borderd  th{
+	background-color : #f5ebe7;
+	margin-bottom: 80px;
+	text-align: center;
+	vertical-align: middle;
+	width: 10%;
+}
+.table-borderd {
+	margin-bottom: 20px;
+	border :1px solid #ddd;
+}
+.date{
+	width: 200px;
+	display: inline-block;
+}
+.inputText{
+	width: 415px;
+}
+.dataTable-dropdown{
+	float: right;
+}
+.titleFont{
+	font-weight: bold;
+	font-size: 18px;
+	color: #25396F;
+}
+
+/*레이아웃 스타일 */
+	.card-header .row div, .card-header .row h4,  .card-header .row ol li, .card-header .row ol {
+		margin : 0;
+		padding : 0;
+	}
+	.card-header .row{
+		display: flex;
+		justify-content: space-between;
+		margin : 0 10px;
+	}
+	
+	.card-header .rowLeft, .card-header .rowRight  {
+		width : 50%;
+	}
+	.card-header .rowRight ol {
+		justify-content: flex-end;
+	}
+	
+	.resetBtn {
+		background-color: #f5ebe7;
+		border-color: #876767;
+		border-radius: 5px;
+		color : #876767;
+	}
+	.pribtn {
+		padding : 0.12rem 0.75rem; 
+		background-color: #876767;
+		border-color: #876767;
+	}
+	.btnArea {
+		height :30px;
+		margin-bottom : 7px;
+	}
+	.dataTable-table {
+		border-top : 1px solid #ddd;
+		width: 100%;
+	}
+	.dataTable-table td {
+		height: 48px;
+	}
+	.dataArea {
+ 	    height: 550px;
+ 	    overflow-y: scroll;
+ 	    overflow-x: hidden;
+	}
+	#pagingArea {
+		height: 40px;
+		align-items: center;
+	}
+	.btn-secondary {
+		padding : 0.12rem 0.75rem;
+		margin-left: 5px;
+	}
+	.dataTable-selector {
+		padding : 0.12rem 0.75rem;
+		padding-right: 2rem;
+	}
+	.dataTable-bottom {
+		padding :0;
+	}
+	.card {
+		margin : 0;
+	}
+	::-webkit-scrollbar { width: 5.2px; } /* 스크롤 바 */
+	::-webkit-scrollbar-thumb { background: #ddd; border-radius: 10px; } /* 실질적 스크롤 바 */

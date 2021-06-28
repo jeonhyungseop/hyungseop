@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.head.education.dao.IEducationDAO">
+	<resultMap type="EducationVO" id="EducationMap" autoMapping="true">
+		<id property="edc_code" column="EDC_CODE"/>
+		<collection property="employeeList" ofType="EmployeeVO" autoMapping="true">
+			<id property="emp_id" column="EMP_ID"/>
+			<collection property="deptList" ofType="DeptVO" autoMapping="true">
+				<id property="dept_seq" column="DEPT_SEQ"/>
+			</collection>
+		</collection>
+	</resultMap>
+	
+	<resultMap type="EmployeeVO" id="EmpMap" autoMapping="true">
+		<id property="emp_id" column="EMP_ID"/>
+		<collection property="deptList" ofType="kr.or.ddit.cfms.head.employee.vo.DeptVO" autoMapping="true">
+			<id property="dept_seq" column="DEPT_SEQ"/>
+		</collection>
+	</resultMap>
+
+	<select id="selectEducationList" parameterType="string" resultMap="EducationMap">
+		SELECT EDC_CODE
+		   , EMP.EMP_ID
+	       , FN_CODENAME('EDC_CL_CODE', EDC_CL_CODE) EDC_CL_CODE
+	       , EDC_NM
+	       , TO_CHAR(EDC_START_TIME, 'YYYY-MM-DD HH24:MI:SS') EDC_START_TIME
+       	   , TO_CHAR(EDC_END_TIME, 'YYYY-MM-DD HH24:MI:SS') EDC_END_TIME
+	       , EDC_CN
+	       , EDC_PLACE
+	       , EMP_NM
+	       , EMP_EMAIL
+	       , EMP.DEPT_SEQ
+	       , FN_CODENAME('EMP_CLSF_CODE', EMP_CLSF_CODE) EMP_CLSF_CODE
+	       , DEPT_NM
+		FROM TB_EDUCATION EDU, TB_EMPLOYEE EMP, TB_DEPT DE
+		WHERE EDU.EMP_ID = EMP.EMP_ID
+		AND EMP.DEPT_SEQ = DE.DEPT_SEQ (+)
+		AND EMP.HEAD_CODE = #{code}
+		AND EDU.EDC_DEL_AT='N'
+	</select>
+
+	<!-- , TO_CHAR(EDC_START_TIME, 'YYYY-MM-DD')||'T'||TO_CHAR(EDC_START_TIME, 'HH24:MM:SS') EDC_START_TIME -->
+	<!-- , TO_CHAR(EDC_END_TIME, 'YYYY-MM-DD')||'T'||TO_CHAR(EDC_END_TIME, 'HH24:MM:SS') EDC_END_TIME -->
+	
+	<select id="selectEducation" parameterType="map" resultMap="EducationMap">
+		SELECT EDC_CODE
+		   , EMP.EMP_ID
+	       , FN_CODENAME('EDC_CL_CODE', EDC_CL_CODE) EDC_CL_CODE
+	       , EDC_NM
+	       , TO_CHAR(EDC_START_TIME, 'YYYY-MM-DD HH24:MI:SS') EDC_START_TIME
+       	   , TO_CHAR(EDC_END_TIME, 'YYYY-MM-DD HH24:MI:SS') EDC_END_TIME
+	       , EDC_CN
+	       , EDC_PLACE
+	       , EDC_DEL_AT
+	       , EMP_NM
+	       , EMP_EMAIL
+	       , EMP.DEPT_SEQ
+	       , FN_CODENAME('EMP_CLSF_CODE', EMP_CLSF_CODE) EMP_CLSF_CODE
+	       , DEPT_NM
+		FROM TB_EDUCATION EDU, TB_EMPLOYEE EMP, TB_DEPT DE
+		WHERE EDU.EMP_ID = EMP.EMP_ID
+		AND EMP.DEPT_SEQ = DE.DEPT_SEQ (+)
+		AND EMP.HEAD_CODE = #{code}
+		AND EDC_CODE = #{edc_code}
+	</select>
+	
+	<resultMap type="ComCodeGrpVO" id="comCodeGrpMap" autoMapping="true">
+		<id property="com_code_grp" column="COM_CODE_GRP"/>
+		<collection property="comCodeList" ofType="ComCodeVO" autoMapping="true">
+			<id property="com_code" column="COM_CODE"/>
+		</collection>
+	</resultMap>
+	
+	<select id="selectCodeList" parameterType="String" resultMap="comCodeGrpMap">
+		SELECT A.CODE_GRP_NM, A.CODE_GRP_DC, A.COM_CODE_GRP,B.COM_CODE,
+ 			   B.COM_CODE_NM, B.COM_CODE_DC, B.UPPER_COM_CODE_GRP, B.UPPER_COM_CODE
+		FROM TB_COMCODE_GRP A INNER JOIN TB_COMCODE B ON (A.COM_CODE_GRP = B.COM_CODE_GRP)
+		WHERE A.COM_CODE_GRP = #{code} 
+		AND A.USE_AT = 'Y' AND B.USE_AT = 'Y'
+	</select>
+	
+	<select id="selectEmpList" parameterType="String" resultMap="EmpMap">
+		SELECT EMP_ID
+			, EMP.HEAD_CODE
+			, EMP_NM
+			, EMP_EMAIL
+	   		, FN_CODENAME('EMP_SE_CODE', EMP_SE_CODE) EMP_SE_CODE
+	   		, FN_CODENAME('EMP_CLSF_CODE', EMP_CLSF_CODE) EMP_CLSF_CODE
+	   		, DE.DEPT_NM
+	   		, DE.DEPT_SEQ
+		FROM TB_EMPLOYEE EMP , TB_DEPT DE
+		WHERE EMP.HEAD_CODE = #{code}
+		AND EMP.DEPT_SEQ = DE.DEPT_SEQ (+)
+		AND EMP_RETDE IS NULL
+	</select>
+	
+	<insert id="insertEducation" parameterType="EducationVO">
+		<selectKey resultType="string" order="BEFORE" keyColumn="EDC_CODE" keyProperty="edc_code">
+			SELECT FN_EDCCODE()
+			FROM DUAL
+		</selectKey>
+		INSERT INTO TB_EDUCATION(
+		    EDC_CODE
+		    , EMP_ID
+		    , EDC_CL_CODE
+		    , EDC_NM
+		    , EDC_START_TIME
+		    , EDC_END_TIME
+		    , EDC_PLACE
+		    <if test="@org.apache.commons.lang3.StringUtils@isNotBlank(edc_cn)">
+		    , EDC_CN
+		    </if>
+		)VALUES(
+			 #{edc_code,       jdbcType=VARCHAR}
+		    , #{emp_id         , jdbcType=VARCHAR}
+		    , #{edc_cl_code    , jdbcType=VARCHAR}
+		    , #{edc_nm         , jdbcType=VARCHAR}
+		    , TO_DATE(#{edc_start_time, jdbcType=DATE}, 'YYYY-MM-DD HH24:MI:SS')
+		    , TO_DATE(#{edc_end_time, jdbcType=DATE}, 'YYYY-MM-DD HH24:MI:SS')
+		    , #{edc_place      , jdbcType=VARCHAR}
+		    <if test="@org.apache.commons.lang3.StringUtils@isNotBlank(edc_cn)">
+		    , #{edc_cn         , jdbcType=CLOB}
+		    </if>
+		)
+	</insert>
+	
+	<update id="updateEducationDay" parameterType="EducationVO">
+		UPDATE TB_EDUCATION
+		SET
+		    EDC_START_TIME = TO_DATE(#{edc_start_time, jdbcType=DATE}, 'YYYY-MM-DD HH24:MI:SS')
+		    , EDC_END_TIME = TO_DATE(#{edc_end_time, jdbcType=DATE}, 'YYYY-MM-DD HH24:MI:SS') 
+		WHERE EDC_CODE = #{edc_code,       jdbcType=VARCHAR}
+	</update>
+</mapper>

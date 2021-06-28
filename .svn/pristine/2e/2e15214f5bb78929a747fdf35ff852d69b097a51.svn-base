@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.head.commute.dao.IHeadCommuteDAO">
+
+
+<!-- 직원근태관리 : 출근 -->
+<insert id="insertGoToWork" parameterType="DclzVO">
+<selectKey resultType="int" order="BEFORE" keyProperty="dclz_seq">
+	SELECT SEQ_DCLZ.NEXTVAL FROM DUAL 
+</selectKey>
+/*kr.or.ddit.cfms.head.commute.dao.IHeadCommuteDAO.insertGoToWork*/
+ INSERT INTO tb_dclz (
+    DCLZ_SEQ,
+    EMP_ID,
+    DCLZ_STDRDE,
+    ATTEND_TIME,
+    DCLZ_SE_CODE
+) VALUES (
+    #{dclz_seq, jdbcType=NUMERIC},
+    #{emp_id, jdbcType=VARCHAR},
+	#{dclz_stdrde, jdbcType=VARCHAR},
+    SYSDATE,
+    #{dclz_se_code, jdbcType=VARCHAR}
+)
+</insert>
+
+
+
+</mapper>

@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.fran.education.dao.IFranEducationDAO">
+
+	<resultMap type="FranEducationVO" id="EducationMap" autoMapping="true">
+		<id property="edc_code" column="EDC_CODE"/>
+		<collection property="employeeList" ofType="EmployeeVO" autoMapping="true">
+			<id property="emp_id" column="EMP_ID"/>
+			<collection property="deptList" ofType="DeptVO" autoMapping="true">
+				<id property="dept_seq" column="DEPT_SEQ"/>
+			</collection>
+		</collection>
+	</resultMap>
+	
+	<select id="selectEducationList" parameterType="map" resultMap="EducationMap">
+		SELECT EDU.EDC_CODE
+		   , FN_CODENAME('EDC_CL_CODE', EDC_CL_CODE) EDC_CL_CODE
+		   , EDC_NM
+		   , TO_CHAR(EDC_START_TIME, 'YYYY-MM-DD HH24:MI:SS') EDC_START_TIME
+		   , TO_CHAR(EDC_END_TIME, 'YYYY-MM-DD HH24:MI:SS') EDC_END_TIME
+		   , EDC_CN
+		   , EDC_PLACE
+		   , EMP_NM
+		   , EMP_EMAIL
+		   , FN_CODENAME('EMP_CLSF_CODE', EMP_CLSF_CODE) EMP_CLSF_CODE
+		   , DEPT_NM
+		   , EDULIST.EDC_CP_AT
+		FROM TB_EDUCATION EDU, TB_EMPLOYEE EMP, TB_DEPT DE, TB_EDULIST EDULIST
+		WHERE EDU.EMP_ID = EMP.EMP_ID
+		AND EMP.DEPT_SEQ = DE.DEPT_SEQ (+)
+		AND EDU.EDC_CODE(+) = EDULIST.EDC_CODE
+		AND EDU.EDC_DEL_AT='N'
+		AND EMP.HEAD_CODE = #{head_code}
+		AND EDULIST.FRAN_CODE=#{code}
+	</select>
+	
+	<select id="selectEducationDetail" parameterType="map" resultMap="EducationMap">
+		SELECT EDU.EDC_CODE
+		   , FN_CODENAME('EDC_CL_CODE', EDC_CL_CODE) EDC_CL_CODE
+		   , EDC_NM
+		   , TO_CHAR(EDC_START_TIME, 'YYYY-MM-DD HH24:MI:SS') EDC_START_TIME
+		   , TO_CHAR(EDC_END_TIME, 'YYYY-MM-DD HH24:MI:SS') EDC_END_TIME
+		   , EDC_CN
+		   , EDC_PLACE
+		   , EMP_NM
+		   , EMP_EMAIL
+		   , FN_CODENAME('EMP_CLSF_CODE', EMP_CLSF_CODE) EMP_CLSF_CODE
+		   , DEPT_NM
+		   , EDULIST.EDC_CP_AT
+		FROM TB_EDUCATION EDU, TB_EMPLOYEE EMP, TB_DEPT DE, TB_EDULIST EDULIST
+		WHERE EDU.EMP_ID = EMP.EMP_ID
+		AND EMP.DEPT_SEQ = DE.DEPT_SEQ (+)
+		AND EDU.EDC_CODE(+) = EDULIST.EDC_CODE
+		AND EDU.EDC_DEL_AT='N'
+		AND EMP.HEAD_CODE = #{head_code}
+		AND EDULIST.FRAN_CODE=#{code}
+		AND EDU.EDC_CODE = #{edc_code}
+	</select>
+</mapper>

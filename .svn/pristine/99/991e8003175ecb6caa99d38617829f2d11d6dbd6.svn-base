@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.head.vacationList.dao.IHeadVacationListDAO">
+
+<select id="selectVacationList" parameterType="PagingVO" resultType="VacationVO">
+/*kr.or.ddit.cfms.head.vacationList.dao.IHeadVacationListDAO.selectVacationList*/
+SELECT * 
+  FROM (
+    SELECT ROWNUM RNUM, A.* 
+      FROM (
+        SELECT VCREQ_SEQ, EMP_ID, VCATN_STARTDE, VCATN_ENDDE, 
+               VCATN_USEDE, VCATN_PRVONSH, VCATN_CONFM_AT, 
+               ( SELECT FN_CODENAME('VCATN_SE_CODE', VCATN_SE_CODE)
+                   FROM DUAL)VCATN_SE_CODE 
+          FROM TB_VACTION
+          WHERE EMP_ID = #{emp_id, jdbcType=VARCHAR}
+    )A
+)B
+</select>
+
+
+<select id="selectVacationCount" parameterType="PagingVO" resultType="int">
+/*kr.or.ddit.cfms.head.vacationList.dao.IHeadVacationListDAO.selectVacationList*/
+SELECT COUNT(*)
+  FROM (
+    SELECT ROWNUM RNUM, A.* 
+      FROM (
+        SELECT VCREQ_SEQ, EMP_ID, VCATN_STARTDE, VCATN_ENDDE, 
+               VCATN_USEDE, VCATN_PRVONSH, VCATN_CONFM_AT, 
+               ( SELECT FN_CODENAME('VCATN_SE_CODE', VCATN_SE_CODE)
+                   FROM DUAL)VCATN_SE_CODE 
+          FROM TB_VACTION
+          WHERE EMP_ID = #{emp_id, jdbcType=VARCHAR}
+    )A
+)B
+</select>
+
+<!-- 휴가 잔여일 조회 -->
+<select id="selectEmpBaseVacation" parameterType="String" resultType="EmployeeVO">
+/*kr.or.ddit.cfms.head.vacationList.dao.IHeadVacationListDAO.selectEmpBaseVacation*/
+SELECT EMP_ID, EMP_BASE_VCDE, EMP_REMNDR_VCDE , (EMP_BASE_VCDE - EMP_REMNDR_VCDE) EMP_MINUS
+  FROM TB_EMPLOYEE
+ WHERE EMP_ID = #{emp_id, jdbcType=VARCHAR}
+</select>
+
+<!-- 휴가 구분조회 -->
+<select id="selectComCodeVSC" resultType="ComCodeVO">
+/*kr.or.ddit.cfms.head.vacationList.dao.IHeadVacationListDAO.selectComCodeVSC*/
+SELECT COM_CODE, COM_CODE_NM
+  FROM TB_COMCODE
+ WHERE COM_CODE_GRP = 'VSC'
+</select>
+
+</mapper>

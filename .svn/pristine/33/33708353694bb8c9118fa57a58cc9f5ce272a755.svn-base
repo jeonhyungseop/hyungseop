@@ -1,0 +1,27 @@
+
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+    
+<style>
+	.card-body-Area {
+		height: 418px;
+	}
+</style>    
+<div class="card Area Area3 " index="6" id="B0006">
+    <div class="card-header table-card">
+        <span class="fontSet">가맹본부리스트 6</span>
+        <div class="card-header-right">
+              <ul class="list-unstyled card-option" style="display : flex; width:30px;">
+                  <li ><i class="fa fa fa-wrench open-card-option"></i></li>
+                  <li ><i class="fa fa-window-maximize full-card"></i></li>
+                  <li ><i class="fa fa-minus minimize-card"></i></li>
+                  <li ><i class="fa fa-refresh reload-card"></i></li>
+                  <li ><i class="fa fa-trash Min3"></i></li>
+              </ul>
+         </div>
+    </div>
+    <div class="card-content card-block pb-4 card-body-Area">
+
+
+    </div>
+</div>

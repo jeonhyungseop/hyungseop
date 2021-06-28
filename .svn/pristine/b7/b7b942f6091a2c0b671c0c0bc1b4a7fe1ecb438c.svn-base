@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.head.mypage.dao.IHeadMypageDAO">
+
+<resultMap type="EmployeeVO" id="EmpMap" autoMapping="true">
+	<id property="emp_id" column="EMP_ID"/>
+	<collection property="deptList" ofType="kr.or.ddit.cfms.head.employee.vo.DeptVO" autoMapping="true">
+		<id property="dept_seq" column="DEPT_SEQ"/>
+	</collection>
+</resultMap>
+
+<resultMap type="EmployeeVO" id="EmpAttMap" autoMapping="true">
+	<id property="emp_id" column="EMP_ID"/>
+	<collection property="deptList" ofType="kr.or.ddit.cfms.head.employee.vo.DeptVO" autoMapping="true">
+		<id property="dept_seq" column="DEPT_SEQ"/>
+	</collection>
+	<collection property="attachfileList" ofType="AttachfileVO" autoMapping="true">
+		<id property="att_seq" column="ATT_SEQ"/>
+	</collection>
+</resultMap>
+
+
+<select id="selectMyOne" parameterType="String" resultMap="EmpAttMap">
+/*kr.or.ddit.cfms.head.employee.dao.IHeadEmployeeDAO.selectEmpOne*/
+SELECT EMP_ID, EMP.HEAD_CODE, EMP.DEPT_SEQ, EMP_PASS, EMP_NM, 
+       EMP_ZIPNO, EMP_BAADD, EMP_DEADD, EMP_TELNO, EMP_CELNO, 
+       EMP_EMAIL, EMP_BIRTDAY, EMP_ENCPN, EMP_RETDE, EMP_BASE_VCDE,
+       EMP_REMNDR_VCDE, 
+       EMP_SE_CODE, 
+       (SELECT FN_CODENAME('EMP_CLSF_CODE', EMP_CLSF_CODE) FROM DUAL) EMP_CLSF_CODE, 
+       EMP_BACC, EMP_BNM, AT.ATT_FILENO, DE.PROFIT_SEQ, DE.DEPT_CODE, DE.DEPT_NM, 
+       DE.DEPT_TELNO ATT_SEQ, BIZ_SE, FILE_PATH, FILE_NM, SAVE_FILENM, 
+       FILE_TYPE, FILE_SIZE, UPDATETIME, 
+       UPDATEUSER_ID, UPDTIME, UPDUSER_ID 
+  FROM TB_EMPLOYEE EMP, TB_DEPT DE, TB_attachfile AT
+ WHERE EMP.DEPT_SEQ = DE.DEPT_SEQ(+)
+   AND EMP_ID = #{emp_id, jdbcType=VARCHAR}
+   AND AT.ATT_FILENO(+) = EMP.ATT_FILENO
+</select>
+
+<!-- 공통코드 직급목록조회 -->
+<select id="comcodeECL" resultType="ComCodeVO">
+/*kr.or.ddit.cfms.head.employee.dao.IHeadEmployeeDAO.comcodeECL*/
+SELECT COM_CODE_GRP, COM_CODE, COM_CODE_NM, 
+       COM_CODE_DC, USE_AT, UPPER_COM_CODE_GRP, 
+       UPPER_COM_CODE 
+  FROM TB_COMCODE
+ WHERE COM_CODE_GRP = 'ECL'
+</select>
+
+<!-- 공통코드 직원구분 -->
+<select id="comcodeESE" resultType="ComCodeVO">
+/*kr.or.ddit.cfms.head.employee.dao.IHeadEmployeeDAO.comcodeECL*/
+SELECT COM_CODE_GRP, COM_CODE, COM_CODE_NM, 
+       COM_CODE_DC, USE_AT, UPPER_COM_CODE_GRP, 
+       UPPER_COM_CODE 
+  FROM TB_COMCODE
+ WHERE COM_CODE_GRP = 'ESE'
+</select>
+
+<update id="updateMypage" parameterType="EmployeeVO">
+/*kr.or.ddit.cfms.head.employee.dao.IHeadEmployeeDAO.updateEmployee*/
+<selectKey resultType="string" order="BEFORE" keyColumn="ATT_FILENO" keyProperty="att_fileno">
+	SELECT fn_getattfileno() ATT_FILENO
+	FROM DUAL
+</selectKey>
+UPDATE TB_EMPLOYEE
+   SET EMP_NM = #{emp_nm, jdbcType=VARCHAR},
+       EMP_ZIPNO = #{emp_zipno, jdbcType=VARCHAR},
+       EMP_BAADD = #{emp_baadd, jdbcType=VARCHAR},
+       EMP_DEADD = #{emp_deadd, jdbcType=VARCHAR},
+       EMP_TELNO = #{emp_telno, jdbcType=VARCHAR},
+       EMP_CELNO = #{emp_celno, jdbcType=VARCHAR},
+       EMP_EMAIL = #{emp_email, jdbcType=VARCHAR},
+       EMP_BIRTDAY = #{emp_birtday, jdbcType=VARCHAR},
+       EMP_SE_CODE	=#{emp_se_code,jdbcType=VARCHAR},
+ 
+       EMP_BACC = #{emp_bacc, jdbcType=VARCHAR},
+       EMP_BNM = #{emp_bnm, jdbcType=VARCHAR},
+       ATT_FILENO = #{att_fileno, jdbcType=VARCHAR}
+ WHERE EMP_ID = #{emp_id, jdbcType=VARCHAR}
+</update>
+
+</mapper>

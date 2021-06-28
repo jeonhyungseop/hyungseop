@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.head.question.dao.IHeadQuestionDao">
+
+	<sql id="searchFrag">		
+			<trim prefix="WHERE" prefixOverrides="AND" suffixOverrides="OR"> 
+				<if test="detailSearch.head_code!=null and @org.apache.commons.lang3.StringUtils@isNotBlank(detailSearch.head_code)">
+				HEAD_CODE = #{detailSearch.head_code}
+			</if>
+			<trim prefix="AND (" suffix=")">
+				<if test="searchMap!=null and @org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.searchType)">
+							INSTR(QUES_CL_CODE, #{searchMap.searchType}) > 0
+							
+				</if>
+			</trim>
+			<trim prefix="AND (" suffix=")" prefixOverrides="AND">
+				<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.minDate)">
+					AND QUES_DT >= TO_DATE(#{searchMap.minDate}, 'YYYY-MM-DD') 
+				</if>
+				<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.maxDate)">
+					<![CDATA[
+					AND QUES_DT <= TO_DATE(#{searchMap.maxDate}, 'YYYY-MM-DD')
+					]]> 
+				</if>
+			</trim>	
+
+	</trim>
+	</sql>
+	
+	<select id="selectQuestionsList" parameterType="PagingVO" resultType="FranQuestionVO">
+		SELECT B.*
+		FROM (
+    SELECT A.*, ROWNUM RNUM
+			FROM(
+				SELECT QUES_SEQ
+                , HEAD_CODE
+				, QUES_TITLE                 
+				, QUES_CN
+				, QUES_WRITER
+				, TO_CHAR(QUES_DT,'YYYY-MM-DD HH24:MM:SS') QUES_DT    
+				, QUES_EMAIL
+                , FN_CODENAME('QUES_CL_CODE', QUES_CL_CODE) QUES_CL_CODE
+				, FN_CODENAME('QUES_STTUS_CODE', QUES_STTUS_CODE) QUES_STTUS_CODE
+                , QUES_DEL_AT        
+				FROM TB_QUESTIONS
+				 <include refid="searchFrag"/> 					    
+				ORDER BY QUES_SEQ DESC)A
+                )B    
+             <![CDATA[            
+          WHERE         
+            RNUM >= #{startRow} AND RNUM<= #{endRow}
+             ]]>		
+	</select>
+	
+	<select id="selectQuestionCount" parameterType="PagingVO" resultType="int">
+		SELECT COUNT(*)
+		FROM TB_QUESTIONS
+		<include refid="searchFrag"/>	
+	</select>
+
+</mapper>

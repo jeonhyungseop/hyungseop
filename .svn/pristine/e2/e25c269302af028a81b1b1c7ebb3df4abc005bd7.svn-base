@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.fran.pos.dao.IPosOrderDAO">
+	<resultMap type="FranGoodsVO" id="franGoodsAttMap" autoMapping="true">
+		<id property="goods_code" column="GOODS_CODE"/>
+		<collection property="attachfileList" ofType="AttachfileVO" autoMapping="true">
+			<id property="att_seq" column="ATT_SEQ"/>
+		</collection>
+	</resultMap>
+	<select id="selectComCodeList" parameterType="String" resultType="ComCodeVO">
+		SELECT COM_CODE, COM_CODE_NM
+		FROM TB_HEADGOODS INNER JOIN TB_COMCODE  ON TB_HEADGOODS.GOODS_CL_CODE = TB_COMCODE.COM_CODE
+		WHERE TB_COMCODE.COM_CODE_GRP = 'GCC' AND HEAD_CODE = #{head_code}
+		GROUP BY COM_CODE, COM_CODE_NM
+		ORDER BY COM_CODE
+	</select>
+	
+	<select id="selectFranGoodsList" parameterType="FranGoodsVO" resultMap="franGoodsAttMap">
+		SELECT *
+		FROM
+		(
+			SELECT A.FRAN_CODE, B.*
+			FROM TB_FRANGOODS A INNER JOIN TB_HEADGOODS B ON A.GOODS_CODE = B.GOODS_CODE
+			WHERE HEAD_CODE = #{head_code} AND FRAN_CODE = #{fran_code} AND FRAN_GOODS_SALE_AT = 'Y' AND SALE_AT = 'Y'
+		) C LEFT OUTER JOIN TB_ATTACHFILE D ON C.ATT_FILENO = D.ATT_FILENO
+			INNER JOIN TB_COMCODE E ON C.GOODS_CL_CODE = E.COM_CODE
+		WHERE E.COM_CODE_GRP = 'GCC' AND GOODS_CL_CODE = #{goods_cl_code}
+	</select>
+	
+	<select id="selectFranGoods" parameterType="FranGoodsVO" resultMap="franGoodsAttMap">
+		SELECT *
+		FROM TB_HEADGOODS LEFT OUTER JOIN TB_ATTACHFILE ON TB_HEADGOODS.ATT_FILENO = TB_ATTACHFILE.ATT_FILENO
+		WHERE GOODS_CODE = #{goods_code}
+	</select>
+</mapper>

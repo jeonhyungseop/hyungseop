@@ -1,0 +1,360 @@
+    <%--
+* [[개정이력(Modification Information)]]
+* 수정일                 수정자      수정내용
+* ----------  ---------  -----------------
+* 2021. 6.  17. 이진수          화면 구축
+* Copyright (c) ${year} by DDIT All right reserved
+ --%>
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c" %>
+<%@ taglib uri="http://www.springframework.org/tags" prefix="spring" %>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt"%>
+<link rel="stylesheet" href="${cPath}/resources/assets/searchCSS.css">
+<link rel="stylesheet" href="${cPath}/resources/assets/vendors/bootstrap-icons/bootstrap-icons.css">
+<link rel="stylesheet" href="${cPath}/resources/assets/vendors/dripicons/webfont.css">
+<style>
+.card{
+	margin-bottom: 10px;
+	height: 100px;
+}
+.mycard{ 
+	width: 49.5%; 
+	height: 650px;
+}
+.line{
+	background-color : #dacdc6;
+}
+.category{
+	height: auto;
+/*  	cursor: pointer; */
+}
+.category table{
+	border: 1px solid #ddd;
+	border-collapse: collapse;
+}
+.category table tr th{
+	border: 1px solid #bf9292;
+	border-collapse: collapse;
+	width: 20%;
+	background-color: #876767;
+    color: #fff;
+}
+.categoryThTrue:hover {
+    --bs-table-hover-color: #fff;
+    --bs-table-hover-bg: #f2913d;
+    --bs-table-accent-bg: var(--bs-table-hover-bg);
+    color: var(--bs-table-hover-color);
+}
+
+}
+.menuList{
+	height: 560px;
+}
+.categoryThTrue{
+	width: 20%;
+	cursor: pointer;
+}
+
+.thTrue:hover{
+	border: 1px solid #876767;
+}
+.menuList table tbody tr th{
+	width: 20%;
+}
+.thTrue{
+	cursor: pointer;
+}
+.myMenuImage{
+	width: 80%;
+}
+.imageDiv{
+	padding: 10px;
+}
+.categoryAction{
+	background-color: #f2913d !important;
+}
+.imageOrder{
+	width: 80px;
+}
+.orderDataArea{
+	height: 550px;
+}
+#myOrderSum td{
+	padding: 0px 10px;
+}
+</style>
+<body>
+   	<section class="section">
+   		<!-- card 영역 -->
+   		<!-- 주문내역 -->
+   		<div class="card mycard" style="width: 34.5%; height: 710px; float: left;">
+   			<!-- card-header 영역 -->
+            <div class="card-header">
+                <div class="row">
+					<div class="rowLeft">
+						<h4 class="card-title" style="display: inline-block;">주문내역</h4>
+					</div>
+				</div>
+             </div>
+			<!-- card-body 영역 -->
+			<div class="card-body">
+				<!-- 조회 영역 -->
+				<div class="dataTable-container">
+					<div class="dataArea orderDataArea">
+						<table class="table dataTable-table" id="table1">
+							<thead>
+								<tr>
+									<th class="center" id="" style="width: 20%;">이미지</th>
+									<th class="" id="" style="width: 35%;">상품명</th>
+									<th class="right" id="" style="width: 15%;">개수</th>
+									<th class="right" id="" style="width: 16%;">가격</th>
+									<th class="center" id="" style="width: 14%;">삭제</th>
+								</tr>
+							</thead>
+							<tbody id="orderListBody">
+							
+							</tbody>
+						</table>
+					</div>
+				</div>
+				<!-- data-Area 끝 -->
+				<div>
+					<table id="myOrderSum" class="" style="width: 100%;">
+						<tbody>
+							<tr>
+								<td class="center" rowspan="3" style="width: 10%;">
+									<button class='orderListMinusBtn btn btn-secondary' style="height: 38px;">-</button>
+								</td>
+								<td class="center" rowspan="3" style="width: 10%;">
+									<button class='orderListPlusBtn btn btn-primary'>+</button>
+								</td>
+								<td class="right">주문수량</td>
+								<td>판매금액</td>
+								<td>판매금액넣기</td>
+							</tr>
+							
+							<tr>
+								<td class="right" rowspan="2">3</td>
+								<td>부가세</td>
+								<td>부가세</td>
+							</tr>
+							
+							<tr>
+								<td>총합계</td>
+								<td>총합계</td>
+							</tr>
+							
+							
+						</tbody>
+					</table>
+				</div>
+			</div>
+			<!-- card-body 끝 -->
+			
+			
+   		</div>
+   		<!-- card 끝 -->
+   		
+   		<div class="card line" style="display: inline-block; width: 1%; float: left;"></div>
+   		
+   		<!-- 메뉴내역 -->
+   		<div class="card mycard" style="width: 64.5%; height: 710px; ">
+			<!-- card-body 영역 -->
+			<div class="card-body">
+				<!-- 분류 조회-->
+				<div class="dataTable-container">
+					<div class="dataArea category">
+						<table class="table dataTable-table" id="table1" style="margin: 0px;">
+							<c:forEach begin="0" end="9" step="1" varStatus="idx">
+								<c:if test="${idx.index % 5 == 0}">
+									<tr>
+								</c:if>
+								<c:choose>
+									<c:when test="${not empty comCodeList[idx.index] }">
+										<th class="center categoryThTrue ${idx.index == 0 ? 'categoryAction' : ''}" id="${comCodeList[idx.index].com_code }">${comCodeList[idx.index].com_code_nm }  </th>
+									</c:when>
+									<c:otherwise>
+										<th class="center categoryThFalse" id="${comCodeList[idx.index].com_code }">${comCodeList[idx.index].com_code_nm }  </th>
+									</c:otherwise>
+								</c:choose>
+								
+								<c:if test="${idx.index % 5 == 4}">
+									</tr>
+								</c:if>
+								
+							</c:forEach>
+						</table>
+					</div>
+				</div>
+				<!-- 조회 영역 -->
+				<div class="dataTable-container">
+					<div class="dataArea menuList">
+						<table class="table dataTable-table menutable" id="table1">
+							<tbody id="menuListBody">
+								<c:forEach items="${franGoodsList }" var="franGoods" varStatus="idx">
+									<c:if test="${idx.index % 5 == 0}">
+										<tr>
+									</c:if>
+										<th class="center thTrue">
+											<div class="imageDiv">
+												<c:choose>
+													<c:when test="${franGoods.att_fileno eq null }">
+														<img class='myMenuImage menuClick' src='${cPath}/resources/assets/images/logo/cfmslogo-notext.png'>
+													</c:when>
+													<c:otherwise>
+														<img class='myMenuImage menuClick' src='data:image/jpeg;base64,${franGoods.attachfileList[0].file_img }'>
+													</c:otherwise>
+												</c:choose>
+											</div>
+											<div>
+												${franGoods.goods_nm }
+											</div>
+									  	</th>
+									<c:if test="${idx.index % 5 == 4}">
+										</tr>
+									</c:if>
+								</c:forEach>
+							</tbody>
+						</table>
+					</div>
+				</div>
+				<!-- data-Area 끝 -->
+			</div>
+			<!-- card-body 끝 -->
+			
+			
+   		</div>
+   		<!-- card 끝 -->
+   		
+   		
+   		
+   		<!-- 결제 -->
+   		<div class="card">
+			<!-- card-body 영역 -->
+			<div class="card-body">
+				<!-- 조회 영역 -->
+				<div class="dataTable-container">
+				</div>
+				<!-- data-Area 끝 -->
+			</div>
+			<!-- card-body 끝 -->
+			
+			
+   		</div>
+   		<!-- card 끝 -->
+   	</section>
+   	<form id="searchForm" action="${cPath }/fran/posorder">
+		<input type="hidden" name="searchCatecory" value=""/>
+	</form>
+<script type="text/javascript">
+	let locale = navigator.language;
+	let menuListBody = $("#menuListBody");
+	$(".categoryThTrue").on("click", function() {
+		$(".categoryThTrue").removeClass("categoryAction");
+		$(this).addClass("categoryAction");
+		searchForm.find("[name='searchCatecory']").val($(this).attr("id"));
+		searchForm.submit();
+	});
+	
+	let searchForm = $("#searchForm").ajaxForm({
+		dataType:"json"
+		, beforeSubmit:function(){
+		}, success:function(resp){
+			menuListBody.empty();
+			let trTags = [];
+			let thTags = [];
+			if(resp){
+				$(resp).each(function(idx, goods){
+					let img = $("<div>").html("<img class='myMenuImage menuClick' style='width: 80%;' src='${cPath}/resources/assets/images/logo/cfmslogo-notext.png'>").addClass("imageDiv").css("padding", "10px");
+					if(goods.att_fileno != null){
+						img = $("<div>").html("<img class='myMenuImage menuClick' style='width: 80%;' src='data:image/jpeg;base64,"+goods.attachfileList[0].file_img+"'>").addClass("imageDiv").css("padding", "10px");
+					}
+					let th = $("<th>").append(
+							img
+							, $("<div>").html(goods.goods_nm)
+							).addClass("center thTrue").attr("id",goods.goods_code)
+					thTags.push(th)
+					if(idx%5 == 4 && idx>0){
+						let tr = $("<tr>").append(thTags);
+						trTags.push(tr);
+						thTags = [];
+					}else if(resp.length < 5 && resp.length-1 == idx){
+						if(5-resp.length > 0){
+							for(var i = 0; i < 5-resp.length; i++){
+								let th = $("<th>").addClass("center")
+								thTags.push(th)
+							}
+								
+						}
+						let tr = $("<tr>").append(thTags);
+						trTags.push(tr);
+						thTags = [];
+					}
+				});
+			}else{
+				trTags.push( 
+					$("<tr>").html(
+						$("<td>").attr("colspan", "8")		
+					)
+				);
+			}
+			menuListBody.html(trTags);
+		}, error:function(xhr, resp, error){
+			console.log(xhr);
+		}
+	});
+	searchForm.submit();
+	
+	
+	orderListBody = $("#orderListBody");
+	
+	$("#menuListBody").on("click", ".thTrue", function() {
+		let goods_code = $(this).attr("id");
+		$.ajax({
+			 url :"${cPath}/fran/posorder/goodsSearch",
+			 data :{
+				 "goods_code" : goods_code
+			 },
+			 dataType: "json",
+			 success : function(goods) {
+			 	let img = $("<div>").html("<img class='' style='width: 80%;' src='${cPath}/resources/assets/images/logo/cfmslogo-notext.png'>").addClass("imageOrder center").css("padding", "10px");
+				if(goods.att_fileno != null){
+					img = $("<div>").html("<img class='' style='width: 80%;' src='data:image/jpeg;base64,"+goods.attachfileList[0].file_img+"'>").addClass("imageOrder center").css("padding", "10px");
+				}
+				let check = false;
+				$("#orderListBody tr").each(function(idx, code) {
+					let saveCode = "order";
+					saveCode = $(this).attr("id");
+					saveCode = saveCode.replace("order","");
+					console.log(saveCode)
+					if(saveCode == goods_code){
+						let goods_qy = $(this).find(".goods_qy").text();
+						goods_qy = parseInt(goods_qy.replace(",","")) + 1;
+						$(this).find(".goods_qy").text(goods_qy.toLocaleString(locale));
+						check = true;
+					}
+				})
+				if(check){
+					return false;
+				}
+				let tr = $("<tr>").append(
+						img.addClass("center")
+						, $("<td>").html(goods.goods_nm)
+						, $("<td>").html(1).addClass("goods_qy").addClass("right")
+						, $("<td>").html(goods.goods_basepc.toLocaleString(locale)).addClass("right")
+						, $("<td>").html("<button class='orderListDeleteBtn btn btn-secondary'>X</button>")
+				).attr("id","order"+goods.goods_code);
+				orderListBody.append(tr);
+				
+			}, error:function(xhr, resp, error){
+				console.log(xhr);
+			}
+		});				
+	});
+	
+	$(".orderDataArea").on("click", ".orderListDeleteBtn", function() {
+		$(this).parents("tr").remove();
+	});
+</script>
+</body>

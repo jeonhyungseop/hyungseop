@@ -1,0 +1,21 @@
+package kr.or.ddit.cfms.head.royal.vo;
+
+import java.io.Serializable;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
+@Data
+@ToString
+@EqualsAndHashCode(of = "head_code")
+@NoArgsConstructor
+@AllArgsConstructor
+public class HeadRoyalVO implements Serializable{
+	private Integer rnum;
+	private String head_code;//가맹본부 코드
+	private Integer royalty;//가맹비
+	private String royalty_apli_start_de;//가맹비 적용 시작 일자
+	private String royalty_use_at;//가맹비 사용여부
+}

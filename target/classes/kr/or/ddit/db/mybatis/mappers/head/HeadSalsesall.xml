@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.head.salesall.dao.IHeadSalesallDAO">
+	<select id="selectSalesallCount" parameterType="PagingVO" resultType="int">
+		SELECT COUNT(*)
+		FROM V_HEADINVEN
+		WHERE HEAD_CODE = #{detailSearch.head_code}
+	</select>
+	<resultMap type="HeadProdVO" id="headprodMap" autoMapping="true">
+		<id property="prod_code" column="PROD_CODE"/>
+		<collection property="attachfileList" ofType="AttachfileVO" autoMapping="true">
+			<id property="att_seq" column="ATT_SEQ"/>
+		</collection>
+	</resultMap>
+	<select id="selectSalesallList" parameterType="PagingVO" resultMap="headprodMap">
+		SELECT *
+		FROM(
+		    SELECT ROWNUM RNUM, F.*
+		    FROM
+		    (
+		      SELECT TO_CHAR(SYSDATE, 'yyyy/mm/dd') TODAY, D.PROD_CODE PROD_CODE, SUM(NVL(C.SUM_IN_QY,0)) IN_QY,
+		                        D.HEAD_CODE HEAD_CODE, E.PROD_NM PROD_NM, E.PROD_SUPLY_PC PROD_SUPLY_PC, E.PROD_PUCHAS_PC PROD_PUCHAS_PC, E.ATT_FILENO, E.PROD_USE_AT
+		        FROM
+		              (
+		                SELECT B.PROD_CODE PROD_CODE, A.FRAN_CODE FRAN_CODE,  SUM(B.IN_QY) SUM_IN_QY
+		                FROM    TB_IN A LEFT OUTER JOIN TB_INLIST B ON A.IN_NO  = B.IN_NO
+		                WHERE   TO_CHAR(A.IN_CMPT_TIME, 'yyyy/mm/dd') = TO_CHAR(SYSDATE, 'yyyy/mm/dd') AND SUBSTR(A.FRAN_CODE,0,5) = #{detailSearch.head_code}
+		                GROUP BY B.PROD_CODE, A.FRAN_CODE
+		                ORDER BY B.PROD_CODE
+		              ) C RIGHT OUTER JOIN TB_HEINVEN D ON C.PROD_CODE = D.PROD_CODE
+		                LEFT OUTER JOIN TB_PROD E ON D.PROD_CODE = E.PROD_CODE
+		        WHERE  D.HEAD_CODE = #{detailSearch.head_code}
+		        GROUP BY TO_CHAR(SYSDATE, 'yyyy/mm/dd'), D.PROD_CODE, D.HEAD_CODE, E.PROD_NM, E.PROD_SUPLY_PC, E.PROD_PUCHAS_PC, E.ATT_FILENO, E.PROD_USE_AT
+		        ORDER BY D.PROD_CODE
+		    )F 
+		)G LEFT OUTER JOIN TB_ATTACHFILE H ON G.ATT_FILENO = H.ATT_FILENO 
+	 	<![CDATA[
+		WHERE RNUM >= #{startRow} AND RNUM <= #{endRow}
+		]]>
+		ORDER BY PROD_CODE
+	</select>
+	<resultMap type="HeadInvenVO" id="headInvenAttMap" autoMapping="true">
+		<id property="prod_code" column="PROD_CODE"/>
+		<collection property="attachfileList" ofType="AttachfileVO" autoMapping="true">
+			<id property="att_seq" column="ATT_SEQ"/>
+		</collection>
+	</resultMap>
+	<select id="selectProd" parameterType="HeadInvenVO" resultMap="headInvenAttMap">
+		SELECT *
+        FROM (
+		    SELECT SUM(IN_QY) IN_QY
+		    FROM TB_INLIST
+		    WHERE PROD_CODE = #{prod_code}
+		) A, V_HEADINVEN LEFT OUTER JOIN TB_ATTACHFILE ON V_HEADINVEN.ATT_FILENO = TB_ATTACHFILE.ATT_FILENO
+        WHERE HEAD_CODE = #{head_code}
+        AND PROD_CODE = #{prod_code}
+	</select>
+	<select id="selectClName" parameterType="String" resultType="String">
+		SELECT COM_CODE_NM
+		FROM TB_COMCODE 
+		WHERE COM_CODE = #{prod_cl_code} AND COM_CODE_GRP = 'PCC'
+	</select>
+	<select id="selectUnitName" parameterType="String" resultType="String">
+		SELECT COM_CODE_NM
+		FROM TB_COMCODE 
+		WHERE COM_CODE = #{prod_unit_code} AND COM_CODE_GRP = 'PUC'
+	</select>
+	<select id="selectProdListCount" parameterType="PagingVO" resultType="int">
+		SELECT COUNT(*)
+		FROM V_ORDERS A LEFT OUTER JOIN TB_INLIST B ON A.IN_NO  = B.IN_NO
+		LEFT OUTER JOIN TB_ORDLIST C ON A.ORDER_NO = C.ORDER_NO
+		WHERE A.HEAD_CODE = 'HTC01' AND B.PROD_CODE = 'PR00000001' AND C.PROD_CODE = 'PR00000001' AND A.IN_CMPT_TIME IS NOT NULL
+	</select>
+	<select id="selectProdList" parameterType="PagingVO" resultType="SalesProdVO">
+		SELECT *
+		FROM
+		(
+		    SELECT ROWNUM RNUM, D.*
+		    FROM
+		    (
+		        SELECT a.fran_comnm, TO_CHAR(A.IN_CMPT_TIME, 'yyyy-mm-dd') IN_CMPT_TIME, b.in_qy, c.prod_suply_pc
+		        FROM V_ORDERS A LEFT OUTER JOIN TB_INLIST B ON A.IN_NO  = B.IN_NO
+		            LEFT OUTER JOIN TB_ORDLIST C ON A.ORDER_NO = C.ORDER_NO
+		        WHERE A.HEAD_CODE = #{detailSearch.head_code} AND B.PROD_CODE = #{detailSearch.prod_code} AND C.PROD_CODE = #{detailSearch.prod_code} AND A.IN_CMPT_TIME IS NOT NULL
+		        ORDER BY IN_CMPT_TIME DESC
+		    ) D
+		)
+		<![CDATA[
+		WHERE RNUM >= #{startRow} AND RNUM <= #{endRow}
+		]]>
+	</select>
+	<select id="selectChart" parameterType="SalesProdVO" resultType="SalesProdVO">
+		SELECT TO_CHAR(D.DT,'yyyy-mm-dd') IN_CMPT_TIME, SUM(NVL(SUM_IN_QY,0)) IN_QY
+		FROM V_PRESYSDATE30 D LEFT OUTER JOIN
+		(
+		    SELECT TO_CHAR(A.IN_CMPT_TIME, 'yyyy-mm-dd') DAY, SUM(B.IN_QY) SUM_IN_QY
+		    FROM    TB_IN A LEFT OUTER JOIN TB_INLIST B ON A.IN_NO  = B.IN_NO
+		            LEFT OUTER JOIN  TB_FRANCHISE C ON A.FRAN_CODE = C.FRAN_CODE
+		    WHERE B.PROD_CODE = #{prod_code} AND C.HEAD_CODE = #{head_code}
+		    GROUP BY TO_CHAR(A.IN_CMPT_TIME, 'yyyy-mm-dd'), B.IN_QY
+		) E
+		ON TO_CHAR(D.DT,'yyyy-mm-dd') = E.DAY
+		GROUP BY D.DT
+		ORDER BY TO_CHAR(D.DT,'yyyy-mm-dd')
+	</select>
+</mapper>

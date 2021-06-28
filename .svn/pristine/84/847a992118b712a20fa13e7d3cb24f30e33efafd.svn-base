@@ -1,0 +1,43 @@
+package kr.or.ddit.cfms.head.education.vo;
+
+import java.io.Serializable;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.ToString;
+
+/**
+ * @author 진유리
+ * @since 2021. 06. 15
+ * @version 1.0
+ * @see javax.servlet.http.HttpServlet
+ * <pre>
+ * [[개정이력(Modification Information)]]
+ * 수정일                          수정자               수정내용
+ * ------------     --------    ----------------------
+ * 2021. 06. 15     진유리         최초작성
+ * Copyright (c) 2021 by DDIT All right reserved
+ * </pre>
+ */
+
+@Data
+@ToString
+@EqualsAndHashCode(of = "edc_code")
+@NoArgsConstructor
+@AllArgsConstructor
+public class EducationVO implements Serializable{
+	private String edc_code;//교육코드
+	private String emp_id;//직원 아이디
+	private String edc_cl_code;//교육 분류 코드(ECC)
+	private String edc_nm;//교육 명
+	private String edc_start_time;//교육 시작일시
+	private String edc_end_time;//교육 종료일시
+	private String edc_cn;//교육 내용
+	private String edc_place;//교육 장소
+	
+	//직원테이블에 있는 컬럼들
+	private String emp_nm;//직원 이름
+	private String emp_email;//직원 이메일
+}

@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.fran.deposit.dao.IFranDepositDAO">
+
+	<sql id="searchFrag">
+		<trim prefix="WHERE" prefixOverrides="AND|OR">
+			<if test="detailSearch.fran_code!=null and @org.apache.commons.lang3.StringUtils@isNotBlank(detailSearch.fran_code)">
+				FRAN_CODE = #{detailSearch.fran_code}
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.searchWord)">
+				AND INSTR (MEMO, #{searchMap.searchWord}) > 0
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.searchType)">
+				AND (DSMN_RCPPAY_SE, #{searchMap.searchType}) > 0
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.minDate)">
+				AND DSMN_MVTIME >= TO_DATE(#{searchMap.minDate}, 'YYYY-MM-DD') 
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.maxDate)">
+				<![CDATA[
+				AND DSMN_MVTIME <= TO_DATE(#{searchMap.maxDate}, 'YYYY-MM-DD')
+				]]> 
+			</if>
+		</trim>	
+	</sql>
+
+	<select id="selectFranDepositCount" parameterType="PagingVO" resultType="int">
+		select count(*)
+		from TB_FRDSMN
+		<include refid="searchFrag" />
+	</select>
+	
+	<select id="selectFranDepositList" parameterType="PagingVO" resultType="FrdsmnVO">
+		SELECT E .*
+		FROM(
+		    SELECT ROWNUM RNUM, D.* 
+		    FROM(
+                        SELECT DSMN_SEQ, FRAN_CODE, DSMN_BLCE, DSMN_MVMONEY, DSMN_RCPPAY_SE, FN_CODENAME('DSMN_RCPPAY_SE', DSMN_RCPPAY_SE) DSCNM,
+                        ELCTC_MT_CODE, FN_CODENAME('ELCTC_MT_CODE', ELCTC_MT_CODE) ESCNM, DSMN_MVTIME, MEMO,
+                        TO_CHAR(DSMN_MVTIME,'YYYY-MM-DD') YYMMDD, TO_CHAR(DSMN_MVTIME,'HH24:MI') HH24MI
+                        FROM TB_FRDSMN 
+                        ORDER BY  DSMN_SEQ DESC
+                        ) D
+                        <include refid="searchFrag" />
+        	)  E
+        	<if test='searchMap.excel != "Y"'>
+			WHERE RNUM BETWEEN #{startRow} AND #{endRow}
+			</if>
+	</select>
+	
+	<insert id="insertFranDeposit" parameterType="FrdsmnVO" >
+	
+	<selectKey resultType="int" order="BEFORE" keyColumn="DSMN_BLCE" keyProperty="dsmn_blce">
+		SELECT DSMN_BLCE + #{dsmn_mvmoney,jdbcType=NUMERIC}
+		FROM TB_FRDSMN
+		WHERE  DSMN_SEQ = (SELECT MAX(DSMN_SEQ) FROM TB_FRDSMN  WHERE FRAN_CODE=#{fran_code,jdbcType=VARCHAR})
+	</selectKey>
+		INSERT INTO TB_FRDSMN (
+		    DSMN_SEQ,
+		    FRAN_CODE,
+		    DSMN_BLCE,
+		    DSMN_MVMONEY,
+		    DSMN_RCPPAY_SE,
+		    ELCTC_MT_CODE,
+		    DSMN_MVTIME
+		) VALUES (
+		    SEQ_FRDSMN.nextval,
+		    #{fran_code,jdbcType=VARCHAR},
+		    #{dsmn_blce,jdbcType=NUMERIC}, 
+		    #{dsmn_mvmoney,jdbcType=NUMERIC},
+		    'A0001',
+		    #{elctc_mt_code,jdbcType=VARCHAR},
+		    SYSDATE
+		)
+	</insert>
+	
+	<select id="selectFranDepositblce" parameterType="FrdsmnVO" resultType="int">
+		SELECT DSMN_BLCE
+		FROM
+			(
+			SELECT ROWNUM RNUM, A.*
+			FROM
+				(
+				SELECT  DSMN_BLCE
+				FROM TB_FRDSMN
+				<if test="fran_code!=null and @org.apache.commons.lang3.StringUtils@isNotBlank(fran_code)">
+					WHERE FRAN_CODE = #{fran_code}
+				</if>
+				ORDER BY DSMN_SEQ DESC
+				) A
+		) WHERE RNUM = 1
+	</select>
+
+	<select id="selectAuthIdTable" parameterType="String" resultType="String">
+		SELECT TBNM
+		FROM V_MEMBER
+		WHERE ID = #{authId}
+	</select>
+</mapper>

@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.fran.mypage.dao.IFranMypageDAO">
+
+	<resultMap type="kr.or.ddit.cfms.fran.mypage.vo.franMypageVO"
+		id="franAttMap" autoMapping="true">
+		<id property="fran_code" column="FRAN_CODE" />
+		<collection property="attachfileList" ofType="AttachfileVO"
+			autoMapping="true">
+			<id property="att_seq" column="ATT_SEQ" />
+		</collection>
+	</resultMap>
+	
+	<select id="selectFranMy" parameterType="String" resultMap="franAttMap">
+		SELECT
+		    FRAN_CODE,
+		    HEAD_CODE,
+		    BIZRNO,
+		    FRAN_COMNM,
+		    FRAN_SRBDE,
+		    FRAN_OPENDE,
+		    FRAN_CLSBIZDE,
+		    FRAN_STTUS_CODE,
+		    FRAN_ID,
+		    FRAN_PASS,
+		    FRAN_ZIPNO,
+		    FRAN_BAADD,
+		    FRAN_DEADD,
+		    FRAN_SE_CODE,
+		    FRAN_LATI,
+		    FRAN_LOTI,
+		    FRAN_TELNO,
+		    FOWNER_NM,
+		    FOWNER_CELNO,
+		    FOWNER_BIRTDAY,
+		    FOWNER_EMAIL,
+		    PIN_NO,
+		    AUTH_PASS,
+		    FRAN_BIZRNO,
+		    AT.ATT_FILENO,
+		    BIZ_SE, 
+		    FILE_PATH,
+			FILE_NM, 
+			SAVE_FILENM,
+			FILE_TYPE, 
+			FILE_SIZE,
+		    UPDTIME
+		FROM TB_FRANCHISE FRAN , TB_ATTACHFILE AT
+	   WHERE FRAN_ID =#{fran_id,jdbcType=VARCHAR} 
+	         AND AT.ATT_FILENO(+) = FRAN.ATT_FILENO
+	
+	
+	</select>
+
+	<select id="selectSe" parameterType="string"
+		resultType="kr.or.ddit.cfms.head.mypage.vo.vmemberVO">
+		SELECT *
+		FROM V_MEMBER
+		WHERE ID = #{id,jdbcType=VARCHAR}
+	</select>
+	
+	<select id="selectFranMemberForAuth" parameterType="string"
+		resultType="kr.or.ddit.cfms.fran.mypage.vo.franMypageVO">
+		SELECT FRAN_ID, FRAN_PASS, FOWNER_NM
+		, FOWNER_EMAIL
+
+		FROM TB_FRANCHISE
+		WHERE FRAN_ID = #{fran_id}
+	</select>
+		<update id="updatefranMypage" parameterType="franMypageVO">
+		/*kr.or.ddit.cfms.head.employee.dao.IHeadEmployeeDAO.updateEmployee*/
+		<selectKey resultType="string" order="BEFORE"
+			keyColumn="ATT_FILENO" keyProperty="att_fileno">
+			SELECT fn_getattfileno()
+			ATT_FILENO
+			FROM DUAL
+		</selectKey>
+		UPDATE TB_FRANCHISE
+		SET FOWNER_NM = #{fowner_nm, jdbcType=VARCHAR},
+			FRAN_ZIPNO =	#{fran_zipno, jdbcType=VARCHAR},
+			FRAN_BAADD = #{fran_baadd,jdbcType=VARCHAR},
+			FRAN_DEADD = #{fran_deadd, jdbcType=VARCHAR},				
+			FOWNER_EMAIL = #{fowner_email, jdbcType=VARCHAR},
+			FRAN_TELNO = #{fran_telno, jdbcType=VARCHAR},			
+			ATT_FILENO =#{att_fileno, jdbcType=VARCHAR}
+		WHERE FRAN_ID =#{fran_id,jdbcType=VARCHAR}
+	</update>
+	
+	<insert id="insertfranMyImage" parameterType="franMypageVO">
+/*kr.or.ddit.cfms.head.employee.dao.IHeadEmployeeDAO.insertEmpImage*/
+INSERT ALL
+	<foreach collection="attachfileList" item="attatch" index="idx">
+		INTO TB_ATTACHFILE(
+		    ATT_FILENO,
+		    ATT_SEQ,
+		    BIZ_SE,
+		    FILE_PATH,
+		    FILE_NM,
+		    SAVE_FILENM,
+		    FILE_TYPE,
+		    FILE_SIZE,
+		    UPDATETIME,
+		    UPDATEUSER_ID,
+		    UPDTIME,
+		    UPDUSER_ID
+		)VALUES(
+		    #{att_fileno,jdbcType=VARCHAR},
+		    #{startAtt}+#{idx},
+		    #{attatch.biz_se,jdbcType=VARCHAR},
+		    #{attatch.file_path,jdbcType=VARCHAR},
+		    #{attatch.file_nm,jdbcType=VARCHAR},
+		    #{attatch.save_filenm,jdbcType=VARCHAR},
+		    #{attatch.file_type,jdbcType=VARCHAR},
+		    #{attatch.file_size,jdbcType=NUMERIC},
+		    SYSDATE,
+		    #{attatch.updateuser_id,jdbcType=VARCHAR},
+		    SYSDATE,
+		    #{attatch.upduser_id,jdbcType=VARCHAR}
+		)
+	</foreach>
+	SELECT * FROM DUAL
+</insert>
+
+</mapper>

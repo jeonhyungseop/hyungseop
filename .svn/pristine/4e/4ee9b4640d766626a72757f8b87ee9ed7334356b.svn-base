@@ -1,0 +1,13 @@
+#driverClassName=oracle.jdbc.driver.OracleDriver
+#url=jdbc:oracle:thin:@localhost:1521:xe
+driverClassName=net.sf.log4jdbc.DriverSpy
+url=jdbc:log4jdbc:oracle:thin:@112.220.114.130:1521:xe
+user=TEAM3_202011F
+password=java
+initialSize=2
+maxTotal=2
+maxWait=2000
+
+connectionMessage=connection open
+
+#\uc5ec\uae30\ub3c4 \uc218\uc815\ud574\uc57c\ud568

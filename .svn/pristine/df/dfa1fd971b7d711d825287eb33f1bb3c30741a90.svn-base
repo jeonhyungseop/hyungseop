@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.head.vacation.dao.IHeadVacationDAO">
+
+<select id="selectCalendarList" parameterType="String" resultType="VacationVO">
+/*kr.or.ddit.cfms.head.vacation.dao.IHeadVacationDAO.selectCalendarList*/
+SELECT VCREQ_SEQ, EMP_ID, VCATN_STARTDE, 
+       VCATN_ENDDE, VCATN_USEDE, VCATN_PRVONSH, 
+       VCATN_CONFM_AT, 
+       ( SELECT FN_CODENAME('VCATN_SE_CODE', VCATN_SE_CODE)
+           FROM DUAL)VCATN_SE_CODE 
+  FROM TB_VACTION
+ WHERE EMP_ID = #{emp_id, jdbcType=VARCHAR}
+</select>
+
+
+
+
+
+
+</mapper>

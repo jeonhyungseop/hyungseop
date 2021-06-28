@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.fran.prod.dao.IFranProdDAO">
+	<sql id="searchFrag">
+		<if test="searchMap!=null and @org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.searchWord)">
+        	AND INSTR(UPPER(PROD_NM), UPPER(#{searchMap.searchWord})) > 0
+        </if>
+	</sql>
+	<select id="selectHeadProdCount" parameterType="PagingVO" resultType="int">
+		SELECT COUNT(*)
+		FROM V_HEADINVEN
+		WHERE HEAD_CODE = #{detailSearch.head_code} AND PROD_USE_AT = 'Y'
+		<include refid="searchFrag" />
+	</select>
+	<resultMap type="HeadInvenVO" id="headInvenMap" autoMapping="true">
+		<id property="prod_code" column="PROD_CODE"/>
+		<association property="headProdVO" javaType="HeadProdVO" autoMapping="true"/>
+	</resultMap>
+	<select id="selectHeadProdList" parameterType="PagingVO" resultMap="headInvenAttMap">
+		SELECT *
+		FROM(
+		    SELECT ROWNUM RNUM, A.*
+		    FROM(
+		        SELECT *
+		        FROM V_HEADINVEN
+		        WHERE HEAD_CODE = #{detailSearch.head_code} AND PROD_USE_AT = 'Y'
+		        <include refid="searchFrag" />
+		        ORDER BY PROD_CODE ASC
+		    ) A
+		) B LEFT OUTER JOIN TB_ATTACHFILE ON B.ATT_FILENO = TB_ATTACHFILE.ATT_FILENO
+		<![CDATA[
+		WHERE RNUM >= #{startRow} AND RNUM <= #{endRow}
+		]]>
+	</select>
+	<resultMap type="HeadInvenVO" id="headInvenAttMap" autoMapping="true">
+		<id property="prod_code" column="PROD_CODE"/>
+		<collection property="attachfileList" ofType="AttachfileVO" autoMapping="true">
+			<id property="att_seq" column="ATT_SEQ"/>
+		</collection>
+	</resultMap>
+	
+	<insert id="insertOrder" parameterType="OrderVO">
+		<selectKey resultType="String" keyProperty="order_no" order="BEFORE">
+			SELECT SUBSTR(ORDER_NO,1,2)||LPAD(TO_CHAR(SUBSTR(ORDER_NO,3)+1),8,0) ORDER_NO
+			FROM(
+				SELECT MAX(ORDER_NO) ORDER_NO
+				FROM TB_ORDER
+				)
+		</selectKey>
+		INSERT INTO TB_ORDER(
+			ORDER_NO,
+		    FRAN_CODE,
+		    ORDER_STTUS_CODE,
+		    ORDER_SUPLYPC_SM,
+		    PAY_MT_CODE
+		)VALUES(
+		    #{order_no,jdbcType=VARCHAR},
+		    #{fran_code,jdbcType=VARCHAR},
+		    'B0001',
+		    #{order_suplypc_sm,jdbcType=NUMERIC},
+		    #{pay_mt_code,jdbcType=VARCHAR}
+		)
+	</insert>
+	
+	<insert id="insertOrderList" parameterType="OrderListVO">
+	<selectKey resultType="int" keyProperty="ordSeq" order="BEFORE">
+		SELECT NVL(MAX(ORDERLIST_SEQ), 0) + 1
+		FROM TB_ORDLIST
+		WHERE ORDER_NO = #{order_no}
+	</selectKey>
+	INSERT ALL
+	<foreach collection="orderListVO" item="order" index="idx">
+		INTO TB_ORDLIST(
+			ORDER_NO,
+		    ORDERLIST_SEQ,
+		    PROD_CODE,
+		    ORDER_QY,
+		    PROD_SUPLY_PC
+		)VALUES(
+		    #{order_no,jdbcType=VARCHAR},
+		   	#{ordSeq}+#{idx},
+		    #{order.prod_code,jdbcType=VARCHAR},
+		    #{order.order_qy,jdbcType=NUMERIC},
+		    #{order.prod_suply_pc,jdbcType=NUMERIC}
+		)
+	</foreach>
+	SELECT * FROM DUAL
+	</insert>
+	
+	<select id="selectProdList" parameterType="String" resultType="HeadInvenVO">
+		SELECT PROD_NM, HEAD_MAXCORD_QY
+		FROM V_HEADINVEN
+		WHERE PROD_CODE = #{prod_code}
+	</select>
+</mapper>

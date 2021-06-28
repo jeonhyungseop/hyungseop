@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.fran.bill.dao.IFranBillDAO">
+	<resultMap type="ComCodeGrpVO" id="comCodeGrpMap" autoMapping="true">
+		<id property="com_code_grp" column="COM_CODE_GRP"/>
+		<collection property="comCodeList" ofType="ComCodeVO" autoMapping="true">
+			<id property="com_code" column="COM_CODE"/>
+		</collection>
+	</resultMap>
+	
+	<select id="selectCodeList" parameterType="String" resultMap="comCodeGrpMap">
+		SELECT A.CODE_GRP_NM, A.CODE_GRP_DC, A.COM_CODE_GRP,B.COM_CODE,
+ 			   B.COM_CODE_NM, B.COM_CODE_DC, B.UPPER_COM_CODE_GRP, B.UPPER_COM_CODE
+		FROM TB_COMCODE_GRP A INNER JOIN TB_COMCODE B ON (A.COM_CODE_GRP = B.COM_CODE_GRP)
+		WHERE A.COM_CODE_GRP = #{code} 
+		AND A.USE_AT = 'Y' AND B.USE_AT = 'Y'
+	</select>
+	
+	<sql id="searchFrag">
+		<trim prefix="AND (" suffix=")" prefixOverrides="AND">
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.searchDay)">
+				AND	SUBSTR(BILCLCT_SCHDE, 0, 6) = #{searchMap.searchDay}
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.bscCode)">
+				AND	BILCLCT_STTUS_CODE = #{searchMap.bscCode}
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.pscCode)">
+				AND	PAY_SE_CODE = #{searchMap.pscCode}
+			</if>
+		</trim>	
+	</sql>
+	
+	<select id="selectBillList" parameterType="PagingVO" resultType="FranBillVO">
+		SELECT B.* 
+		FROM(
+		      SELECT ROWNUM RNUM, A.* 
+		      FROM(
+		         SELECT
+		               BILCLCT_SEQ,
+		                BILL.HEAD_CODE,
+		                fran_code,
+		                bilclct_schde,
+		                bilclct_comde,
+		                bilclct_cn,
+		                FN_CODENAME('bilclct_sttus_code', bilclct_sttus_code) bilclct_sttus_code,
+		                FN_CODENAME('PAY_SE_CODE', PAY_SE_CODE) PAY_SE_CODE,
+		                ROYAL.royalty_apli_start_de, 
+		                ROYAL.ROYALTY
+		            FROM TB_BILL BILL, TB_ROYAL ROYAL
+		            WHERE BILL.HEAD_CODE = ROYAL.HEAD_CODE
+		            AND BILL.ROYALTY_APLI_START_DE = ROYAL.ROYALTY_APLI_START_DE
+		            AND BILL.HEAD_CODE = #{detailSearch.head_code}
+		            AND BILL.FRAN_CODE = #{detailSearch.fran_code}
+		            <include refid="searchFrag"/>
+		            ORDER BY BILCLCT_SEQ DESC
+		        ) A
+		    )B
+		<![CDATA[
+    		WHERE RNUM >= #{startRow} AND RNUM <= ${endRow}
+    	]]>
+	</select>
+	
+	<select id="selectBillCount" parameterType="PagingVO" resultType="int">
+		SELECT count(*)
+		FROM TB_BILL BILL, TB_ROYAL ROYAL
+		WHERE BILL.HEAD_CODE = ROYAL.HEAD_CODE
+		AND BILL.ROYALTY_APLI_START_DE = ROYAL.ROYALTY_APLI_START_DE
+		AND BILL.HEAD_CODE = #{detailSearch.head_code}
+		AND BILL.FRAN_CODE = #{detailSearch.fran_code}
+		<include refid="searchFrag"/>
+	</select>
+	
+	<select id="selectFranDepositblce" parameterType="FrdsmnVO" resultType="int">
+		SELECT DSMN_BLCE
+		FROM
+			(
+			SELECT ROWNUM RNUM, A.*
+			FROM
+				(
+				SELECT  DSMN_BLCE
+				FROM TB_FRDSMN
+				<if test="fran_code!=null and @org.apache.commons.lang3.StringUtils@isNotBlank(fran_code)">
+					WHERE FRAN_CODE = #{fran_code}
+				</if>
+				ORDER BY DSMN_SEQ DESC
+				) A
+		) WHERE RNUM = 1
+	</select>
+	
+	<update id="updateFranBill" parameterType="FranBillVO">
+		UPDATE TB_BILL
+		SET BILCLCT_COMDE = TO_CHAR(SYSDATE, 'YYYYMMDD'),
+		    BILCLCT_STTUS_CODE = 'A0001' ,
+		    PAY_SE_CODE = #{pay_se_code, jdbcType=VARCHAR}
+		WHERE BILCLCT_SEQ = #{bilclct_seq, jdbcType=NUMERIC}
+		AND FRAN_CODE = #{fran_code, jdbcType=VARCHAR }
+	</update>
+	
+	<insert id="insertFranDeposit" parameterType="FrdsmnVO" >
+	
+	<selectKey resultType="int" order="BEFORE" keyColumn="DSMN_BLCE" keyProperty="dsmn_blce">
+		SELECT DSMN_BLCE - #{dsmn_mvmoney,jdbcType=NUMERIC}
+		FROM TB_FRDSMN
+		WHERE  DSMN_SEQ = (SELECT MAX(DSMN_SEQ) FROM TB_FRDSMN  WHERE FRAN_CODE=#{fran_code,jdbcType=VARCHAR})
+	</selectKey>
+		INSERT INTO TB_FRDSMN (
+		    DSMN_SEQ,
+		    FRAN_CODE,
+		    DSMN_BLCE,
+		    DSMN_MVMONEY,
+		    DSMN_RCPPAY_SE,
+		    DSMN_MVTIME,
+		    MEMO
+		) VALUES (
+		    SEQ_FRDSMN.nextval,
+		    #{fran_code,jdbcType=VARCHAR},
+		    #{dsmn_blce,jdbcType=NUMERIC}, 
+		    #{dsmn_mvmoney,jdbcType=NUMERIC},
+		    'B0001',
+		    SYSDATE, 
+		    #{memo ,jdbcType=VARCHAR}
+		)
+	</insert>
+</mapper>

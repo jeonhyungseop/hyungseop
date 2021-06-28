@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.head.limit.dao.IHeadLimitDAO">
+	
+	
+	<sql id="searchFrag">
+		<trim prefix="WHERE" prefixOverrides="AND" suffixOverrides="OR"> 
+			<if test="detailSearch.head_code!=null and @org.apache.commons.lang3.StringUtils@isNotBlank(detailSearch.head_code)">
+				HEAD_CODE = #{detailSearch.head_code}
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.searchWord)">
+				AND INSTR (FRAN_COMNM, #{searchMap.searchWord}) > 0
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.orsCode)">
+				AND INSTR (ORDER_STTUS_CODE, #{searchMap.orsCode}) > 0
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.oscCode)">
+				AND INSTR (OUT_STTUS_CODE, #{SEARCHMAP.oscCode}) > 0
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.istCode)">
+				AND INSTR (IN_STTUS_CODE, #{searchMap.istCode}) > 0
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.minDate)">
+				AND ORDER_TIME  >= TO_DATE(#{searchMap.minDate}, 'YYYY-MM-DD') 
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.maxDate)">
+				<![CDATA[
+				AND ORDER_TIME  <= TO_DATE(#{searchMap.maxDate}, 'YYYY-MM-DD')
+				]]> 
+			</if>
+		</trim>	
+	</sql>
+	
+	<select id="selectHeadLimitCount" parameterType="PagingVO" resultType="int">
+		/*kr.or.ddit.cfms.head.limit.dao.IHeadLimitDAO.selectHeadLimitCount*/
+		SELECT COUNT(*)
+		FROM V_ORDERS
+		<include refid="searchFrag" />
+	</select>
+	
+	<select id="selectHeadLimitList" parameterType="pagingVO" resultType="OrdersVO">
+	
+		/*kr.or.ddit.cfms.head.limit.dao.IHeadLimitDAO.selectHeadLimitList*/
+		SELECT *
+		FROM(
+		    SELECT ROWNUM RNUM, C.*
+		    FROM(
+		        SELECT *
+		        FROM V_ORDERS      
+			    <include refid="searchFrag" />
+				ORDER BY ORDER_NO DESC
+		    ) C
+		) D
+		WHERE RNUM BETWEEN #{startRow} AND #{endRow}
+	</select>
+	
+	<select id="selectHeadLimitDetail" parameterType="String" resultType="OrdersVO">
+	/*kr.or.ddit.cfms.head.limit.dao.IHeadLimitDAO.selectHeadLimitDetail*/
+		SELECT *
+		FROM V_ORDERS
+		WHERE ORDER_NO = #{orderNo}
+	</select>
+	
+	<select id="selectHeadLimitOrderList" parameterType="String" resultType="OrdlistVO">
+	/*kr.or.ddit.cfms.head.limit.dao.IHeadLimitDAO.selectHeadLimitOrderList*/
+		SELECT ROWNUM RNUM, A.*
+		FROM(
+			SELECT
+			    ORDER_NO,
+			    ORDERLIST_SEQ,
+			    PROD_CODE,
+			    ORDER_QY,
+			    PROD_SUPLY_PC
+			FROM
+			    TB_ORDLIST
+			WHERE ORDER_NO =#{orderNo}
+			ORDER BY ORDERLIST_SEQ
+			) A
+		</select>
+
+	<resultMap type="OrdlistVO" id="order" autoMapping="true">
+		<id property="orderlist_seq" column="ORDERLIST_SEQ"/>
+		<association property="headInvenVO" javaType="HeadInvenVO" autoMapping="true">
+			<id property="prod_code" column="PROD_CODE"/>
+			<collection property="attachfileList" ofType="AttachfileVO" autoMapping="true">
+				<id property="att_seq" column="ATT_SEQ"/>
+			</collection>
+		</association>
+	</resultMap>
+	<select id="selectHeadInvenProd" parameterType="String" resultMap="order">
+	/*kr.or.ddit.cfms.head.limit.dao.IHeadLimitDAO.selectHeadInvenProd*/
+		SELECT ROWNUM RNUM, A.*
+		FROM(
+		SELECT *
+        FROM TB_ORDLIST LEFT OUTER JOIN V_HEADINVEN
+            ON(TB_ORDLIST.PROD_CODE  =  V_HEADINVEN.PROD_CODE) 
+            LEFT OUTER JOIN TB_ATTACHFILE 
+            ON (V_HEADINVEN.ATT_FILENO = TB_ATTACHFILE.ATT_FILENO)
+        WHERE ORDER_NO = #{order_no}
+        ) A
+	</select>
+
+	<select id="totalRecode" parameterType="OrdersVO" resultType="int">
+	/*kr.or.ddit.cfms.head.limit.dao.IHeadLimitDAO.totalRecode*/
+		SELECT COUNT(*)
+		FROM TB_ORDLIST
+		WHERE ORDER_NO =#{order_no}
+	</select>
+	
+	<update id="updateOrder" parameterType="Map" >
+	/*kr.or.ddit.cfms.head.limit.dao.IHeadLimitDAO.updateOrder*/
+		UPDATE TB_ORDER SET ORDER_STTUS_CODE = #{code} 
+		WHERE ORDER_NO = #{orderNO} 
+	</update>
+</mapper>

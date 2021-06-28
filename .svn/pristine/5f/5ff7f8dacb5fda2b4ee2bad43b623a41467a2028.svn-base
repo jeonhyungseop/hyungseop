@@ -1,0 +1,33 @@
+package kr.or.ddit.cfms.fran.bill.service;
+
+import java.util.List;
+
+import javax.inject.Inject;
+
+import org.springframework.stereotype.Service;
+import kr.or.ddit.cfms.commons.vo.ComCodeGrpVO;
+import kr.or.ddit.cfms.commons.vo.PagingVO;
+import kr.or.ddit.cfms.fran.bill.dao.IFranBillDAO;
+import kr.or.ddit.cfms.fran.bill.vo.FranBillVO;
+
+@Service
+public class FranBillServiceImpl implements IFranBillService {
+	@Inject
+	private IFranBillDAO dao;
+	
+	@Override
+	public ComCodeGrpVO retrieveCodeList(String code) {
+		return dao.selectCodeList(code);
+	}
+
+	@Override
+	public List<FranBillVO> retrieveBillList(PagingVO<FranBillVO> pagingVO) {
+		return dao.selectBillList(pagingVO);
+	}
+
+	@Override
+	public int retrieveBillCount(PagingVO<FranBillVO> pagingVO) {
+		return dao.selectBillCount(pagingVO);
+	}
+	
+}

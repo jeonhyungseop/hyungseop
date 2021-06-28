@@ -1,0 +1,54 @@
+ 
+<%@ page language="java" contentType="text/html; charset=UTF-8"
+    pageEncoding="UTF-8"%>
+ <div class="col-12 col-xl-6 Area Area2 " index="5" id="C0005">
+      <div class="card">
+          <div class="card-header">
+              <span class="fontSet">공지사항 5</span>
+          	<svg class="svg-inline--fa fa-minus fa-w-14 fa-fw select-all svgicon Min2" aria-hidden="true" focusable="false" data-prefix="fas" data-icon="minus" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" data-fa-i2svg=""><path fill="currentColor" d="M416 208H32c-17.67 0-32 14.33-32 32v32c0 17.67 14.33 32 32 32h384c17.67 0 32-14.33 32-32v-32c0-17.67-14.33-32-32-32z"></path></svg>
+          	 <br>
+          </div>
+          <div class="card-body">
+              <div class="table-responsive">
+                  <table class="table table-hover table-lg">
+                      <thead>
+                          <tr>
+                              <th>Name</th>
+                              <th>Comment</th>
+                          </tr>
+                      </thead>
+                      <tbody>
+                          <tr>
+                              <td class="col-3">
+                                  <div class="d-flex align-items-center">
+                                      <div class="avatar avatar-md">
+                                          <img src="../resources/assets/images/faces/5.jpg">
+                                      </div>
+                                      <p class="font-bold ms-3 mb-0">Si Cantik</p>
+                                  </div>
+                              </td>
+                              <td class="col-auto">
+                                  <p class=" mb-0">Congratulations on your graduation!</p>
+                              </td>
+                          </tr>
+                          <tr>
+                              <td class="col-3">
+                                  <div class="d-flex align-items-center">
+                                      <div class="avatar avatar-md">
+                                          <img src="../resources/assets/images/faces/2.jpg">
+                                      </div>
+                                      <p class="font-bold ms-3 mb-0">Si Ganteng</p>
+                                  </div>
+                              </td>
+                              <td class="col-auto">
+                                  <p class=" mb-0">Wow amazing design! Can you make another
+                                      tutorial for
+                                      this design?</p>
+                              </td>
+                          </tr>
+                      </tbody>
+                  </table>
+              </div>
+          </div>
+      </div>
+  </div>

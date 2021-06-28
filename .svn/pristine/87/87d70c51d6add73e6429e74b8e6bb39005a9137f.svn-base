@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.head.dayreport.dao.IHeadDayReportDAO">
+
+<select id="selectFranchiseList" parameterType="string" resultType="FranchiseVO">
+	SELECT
+	    FRAN_CODE,
+	    HEAD_CODE,
+	    BIZRNO,
+	    FRAN_COMNM,
+	    FRAN_SRBDE,
+	    FRAN_OPENDE,
+	    FRAN_CLSBIZDE,
+	    FRAN_STTUS_CODE,
+	    FRAN_ID,
+	    FRAN_PASS,
+	    FRAN_ZIPNO,
+	    FRAN_BAADD,
+	    FRAN_DEADD,
+	    FRAN_SE_CODE,
+	    FRAN_LATI,
+	    FRAN_LOTI,
+	    FRAN_TELNO,
+	    FOWNER_NM,
+	    FOWNER_CELNO,
+	    FOWNER_BIRTDAY,
+	    FOWNER_EMAIL,
+	    PIN_NO,
+	    AUTH_PASS,
+	    FRAN_BIZRNO,
+	    ATT_FILENO
+	FROM
+	    TB_FRANCHISE
+	WHERE
+	    HEAD_CODE = #{head_code}
+</select>
+
+</mapper>

@@ -1,0 +1,49 @@
+package kr.or.ddit.cfms.admin.notice.service;
+
+import java.util.List;
+
+import javax.inject.Inject;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
+import kr.or.ddit.cfms.admin.notice.dao.IboardDAO;
+
+import kr.or.ddit.cfms.commons.vo.BoardVO;
+import kr.or.ddit.cfms.commons.vo.PagingVO;
+import kr.or.ddit.cfms.exception.CustomException;
+@Service
+public class boardServiceImpl implements IboardService{
+	private static final Logger logger =
+			LoggerFactory.getLogger(boardServiceImpl.class);
+	private IboardDAO boardDAO;
+	@Inject
+	public void setBoardDAO(IboardDAO boardDAO) {
+		this.boardDAO = boardDAO;
+		logger.info("주입된 boardDAO : {}", boardDAO.getClass().getName());
+	}
+	@Override
+	public List<BoardVO> retrieveBoardList(PagingVO<BoardVO>pagingVO) {
+		// TODO Auto-generated method stub
+		return boardDAO.selectBoardList(pagingVO);
+	}
+	
+	@Override
+	public int selectBoardCount(PagingVO<BoardVO> pagingVO) {
+		// TODO Auto-generated method stub
+		return boardDAO.selectBoardCount(pagingVO);
+	}
+	
+	@Override
+	public BoardVO retrieveBoard(BoardVO search) {
+		BoardVO board = boardDAO.selectBoard(search);
+		if(board==null)
+			throw new CustomException(search.getBoard_seq()+"에 해당하는 게시글이 없음");
+		
+		boardDAO.incrementHit(board.getBoard_seq());
+		return board;
+		
+	}
+
+}

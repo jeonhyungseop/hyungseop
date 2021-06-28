@@ -1,0 +1,210 @@
+<%--
+* [[개정이력(Modification Information)]]
+* 수정일                 수정자      수정내용
+* ----------  ---------  -----------------
+* 2021. 5. 20. 진예은          최초작성
+* 2021. 6. 14. 진유리          캘린더 UI,조회
+* Copyright (c) 2021 by DDIT All right reserved
+ --%>
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/core" prefix="c"%>    
+<link rel="stylesheet" href="${cPath}/resources/assets/searchCSS.css">    
+<link rel="stylesheet" href="${cPath}/resources/assets/vendors/dripicons/webfont.css">
+<style>
+.dataArea {
+    height: 550px;
+}
+#calendar {
+   max-width: 1100px;
+   margin: 0 auto;
+}
+.bg-modal{
+	background-color: #826767!important;
+}
+.modal-title{
+	color : #ffffff;
+}
+</style>
+<div id="app">
+    <section class="section">
+    	<!-- card 영역 -->
+   		<div class="card">
+   			<!-- card-header 영역 -->
+			<div class="card-header">
+				<div class="row">
+					<div class="rowLeft">
+						<h4>교육일정 관리</h4>
+					</div>
+					<div class="rowRight">
+						<nav aria-label="breadcrumb" >
+							<ol class="breadcrumb">
+								<li class="breadcrumb-item"><a href="${cPath}/head/main">Dashboard</a></li>
+								<li class="breadcrumb-item active" aria-current="page">교육일정 관리</li>
+							</ol>
+						</nav>
+					</div>
+				</div>
+			</div>	
+			<!-- card-header 끝 -->
+			<!-- card-body 영역 -->
+			<div class="card-body">
+				<div id='external-events'></div>
+				<div id='calendar'></div>
+			</div>
+			<!-- card-body 끝 -->
+        </div>
+   		<!-- card 끝 -->
+   	</section>
+   	
+ <!--Disabled Backdrop Modal -->
+<div class="modal fade text-left" id="eventDetail" tabindex="-1" role="dialog"
+    aria-labelledby="myModalLabel4" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable"
+        role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-modal">
+                <h4 class="modal-title" id="eventDetailTitle"></h4>
+            </div>
+            <div class="modal-body">
+                <div id="detailContent">
+                	<div class="form-body">
+                       <div class="row col-12">
+                            <div class="col-md-6">
+                                <label>교육 분류</label>
+                            </div>
+                            <div class="col-md-6 form-group edu_cl">
+                            </div>
+                            <div class="col-md-6">
+                                <label>교육 내용</label>
+                            </div>
+                            <div class="col-md-6 form-group edu_cn">
+                            </div>
+                            <div class="col-md-6">
+                                <label>교육 장소</label>
+                            </div>
+                            <div class="col-md-6 form-group edu_place">
+                            </div>
+                            <div class="col-md-6">
+                                <label>담당 직원명</label>
+                            </div>
+                            <div class="col-md-6 form-group emp_name">
+                            </div>
+                            <div class="col-md-6">
+                                <label>담당 직원 이메일</label>
+                            </div>
+                            <div class="col-md-6 form-group emp_email">
+                            </div>
+                            <div class="col-md-6">
+                                <label>교육 시작 일시</label>
+                            </div>
+                            <div class="col-md-6 form-group edu_start">
+                            </div>
+                            <div class="col-md-6">
+                                <label>교육 종료 일시</label>
+                            </div>
+                            <div class="col-md-6 form-group edu_end">
+                            </div>
+                      	 </div>
+	                </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light-secondary"
+                    data-bs-dismiss="modal">
+                    <i class="bx bx-x d-block d-sm-none"></i>
+                    <span class="d-none d-sm-block">닫기</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+<link href='${cPath}/resources/fullcalendar5.7/lib/main.css' rel='stylesheet' />
+<script src='${cPath}/resources/fullcalendar5.7/lib/main.js'></script>
+<script src='${cPath}/resources/fullcalendar5.7/lib/locales-all.js'></script>
+<script type="text/javascript">
+document.addEventListener('DOMContentLoaded', function() {
+    var calendarEl = document.getElementById('calendar');
+    var containerEl = document.getElementById('external-events');
+    
+    var Draggable = FullCalendar.Draggable;
+    
+    // initialize the external events
+    // -----------------------------------------------------------------
+
+    new Draggable(containerEl, {
+      itemSelector: '.fc-event',
+      eventData: function(eventEl) {
+        return {
+          title: eventEl.innerText
+        };
+      }
+    });
+
+    // initialize the calendar
+    // -----------------------------------------------------------------
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+      timeZone : 'local',
+      locale: 'ko',
+      headerToolbar: {
+        left: 'prev,next today',
+        center: 'title',
+        right: 'dayGridMonth,timeGridWeek,timeGridDay,listMonth'
+      },
+      navLinks: true, // can click day/week names to navigate views
+      businessHours: true, // display business hours
+      editable: true,
+      selectable: true,
+      events: function(info, successCallback, failureCallback){
+    	  var events = [];
+    	  $.ajax({
+              type:"GET",
+              url: "${cPath}/head/education/check" ,
+              success : function(resp) {
+            	  if (resp) {
+     				  $(resp).each(function(idx, edu) {
+     					  var colorVar = "#F2AB6D";
+     					  if(edu.edc_cl_code == '성교육'){colorVar="#BF755A";}
+     					  else if(edu.edc_cl_code == '예절교육'){colorVar="#D96E30";}
+     					  else if(edu.edc_cl_code == '런칭메뉴교육'){colorVar="#F2913D";}
+     					   events.push({id : edu.edc_code , title : edu.edc_nm, start: edu.edc_start_time
+     						   , end : edu.edc_end_time, color : colorVar});
+     				  });
+      			   }
+            	  successCallback(events);
+              }, error : function(xhr, error, msg) {
+          		console.log(xhr);
+          		console.log(error);
+          		console.log(msg);
+          	}
+          });
+      }, //함수 끝
+      eventClick:function(info)  {
+    	  $.ajax({
+              type:"GET",
+              url: "${cPath}/head/education/detail" ,
+              data : {"id" : info.event.id},
+              success : function(resp) {
+            	  $("#eventDetailTitle").text(resp.edc_nm);
+            	  $(".edu_cl").text(resp.edc_cl_code);
+            	  $(".edu_cn").text(resp.edc_cn);
+            	  $(".edu_place").text(resp.edc_place);
+            	  $(".emp_name").text(resp.emp_nm);
+            	  $(".emp_email").text(resp.emp_email);
+            	  $(".edu_start").text(resp.edc_start_time);
+            	  $(".edu_end").text(resp.edc_end_time);
+              }, error : function(xhr, error, msg) {
+          		console.log(xhr);
+          		console.log(error);
+          		console.log(msg);
+          	}
+          });
+    	 $("#eventDetail").modal('show');
+      }
+    });//var calendar끝
+
+    calendar.render();
+  });
+
+
+ </script> 

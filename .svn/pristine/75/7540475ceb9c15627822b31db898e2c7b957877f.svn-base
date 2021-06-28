@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.head.goods.dao.IHeadGoodsDAO">
+	<sql id="searchFrag">
+		<if test="searchMap!=null and @org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.searchWord)">
+			AND INSTR(UPPER(GOODS_NM), UPPER(#{searchMap.searchWord})) > 0
+		</if>
+		<if test="searchMap!=null and @org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.searchCategory)">
+			AND GOODS_CL_CODE  = #{searchMap.searchCategory}
+		</if>
+		<if test="searchMap.minSuply!=null">
+			<![CDATA[
+			AND GOODS_SUPLY_PC >= #{searchMap.minSuply}
+			]]>
+		</if>
+		<if test="searchMap.maxSuply!=null">
+			<![CDATA[
+			AND #{searchMap.maxSuply} >= GOODS_SUPLY_PC
+			]]> 
+		</if>
+		<if test="searchMap.minBase!=null">
+			<![CDATA[
+			AND GOODS_BASEPC >= #{searchMap.minBase}
+			]]>
+		</if>
+		<if test="searchMap.maxBase!=null">
+			<![CDATA[
+			AND #{searchMap.maxBase} >= GOODS_BASEPC
+			]]>
+		</if>
+	</sql>
+	<select id="selectHeadGoodsCount" parameterType="PagingVO" resultType="int">
+		SELECT COUNT(*)
+		FROM TB_HEADGOODS
+		WHERE HEAD_CODE = #{head_code} AND SALE_AT = 'Y'
+		<include refid="searchFrag"/>
+	</select>
+	<resultMap type="HeadGoodsVO" id="headGoodsAttMap" autoMapping="true">
+		<id property="goods_code" column="GOODS_CODE"/>
+		<collection property="attachfileList" ofType="AttachfileVO" autoMapping="true">
+			<id property="att_seq" column="ATT_SEQ"/>
+		</collection>
+	</resultMap>
+	<select id="selectHeadGoodsList" parameterType="PagingVO" resultMap="headGoodsAttMap">
+		SELECT *
+		FROM
+		(
+		    SELECT ROWNUM RNUM, A.*
+		    FROM TB_HEADGOODS A 
+		    WHERE HEAD_CODE = #{head_code}
+			<include refid="searchFrag"/>
+		    ORDER BY A.GOODS_UPDE DESC
+		)B  LEFT OUTER JOIN TB_ATTACHFILE C ON B.ATT_FILENO = C.ATT_FILENO
+		    LEFT OUTER JOIN TB_COMCODE D ON B.GOODS_CL_CODE = D.COM_CODE
+		WHERE D.COM_CODE_GRP = 'GCC' AND SALE_AT = 'Y'
+		<![CDATA[
+		AND RNUM >= #{startRow} AND RNUM <= #{endRow}
+		]]>
+	</select>
+	<select id="selectHeadGoods" parameterType="HeadGoodsVO" resultMap="headGoodsAttMap">
+		SELECT *
+		FROM TB_HEADGOODS A LEFT OUTER JOIN TB_ATTACHFILE B ON A.ATT_FILENO = B.ATT_FILENO
+    		LEFT OUTER JOIN TB_COMCODE C ON A.GOODS_CL_CODE = C.COM_CODE
+		WHERE HEAD_CODE = #{head_code} AND GOODS_CODE = #{goods_code} AND COM_CODE_GRP='GCC'
+	</select>
+</mapper>

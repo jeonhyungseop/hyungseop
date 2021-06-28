@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.head.franmanage.dao.IHeadFranManageDAO">
+	<select id="selectFranCount" parameterType="PagingVO" resultType="int">
+		SELECT COUNT(*)
+		FROM TB_FRANCHISE
+		WHERE HEAD_CODE = #{detailSearch.head_code}
+		AND FRAN_CLSBIZDE IS NULL
+		<include refid="searchFrag"/>
+	</select>
+	
+	<sql id="searchFrag">
+		<trim prefix="AND (" suffix=")" prefixOverrides="AND">
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.searchNm)">
+				AND	INSTR(FOWNER_NM, #{searchMap.searchNm}) > 0 
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.searchArea)">
+				AND	INSTR(FRAN_BAADD, #{searchMap.searchArea}) > 0 
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.startDate)">
+				AND FRAN_SRBDE >= TO_DATE(#{searchMap.startDate}, 'YYYY-MM-DD') 
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.endDate)">
+				<![CDATA[
+				AND FRAN_SRBDE <= TO_DATE(#{searchMap.endDate}, 'YYYY-MM-DD')
+				]]> 
+			</if>
+		</trim>	
+	</sql>
+	
+	<select id="selectFranList" parameterType="PagingVO" resultType="FranchiseVO">
+		SELECT B.* 
+		FROM(
+		      SELECT ROWNUM RNUM, A.* 
+		      FROM(
+		          SELECT
+	                    FRAN_CODE
+	                    , FRAN_COMNM
+	                    , REGEXP_REPLACE(FRAN_SRBDE, '(.{4})(.{2})(.{2})', '\1-\2-\3') FRAN_SRBDE
+                        , REGEXP_REPLACE(FRAN_OPENDE, '(.{4})(.{2})(.{2})', '\1-\2-\3') FRAN_OPENDE
+                        , REGEXP_REPLACE(FRAN_CLSBIZDE, '(.{4})(.{2})(.{2})', '\1-\2-\3') FRAN_CLSBIZDE
+	                    , FN_CODENAME('FRAN_STTUS_CODE', FRAN_STTUS_CODE) FRAN_STTUS_CODE
+	                    , FRAN_ID
+	                    , FRAN_ZIPNO
+	                    , SUBSTR(FRAN_BAADD,0,2) FRAN_AREA
+	                    , FRAN_BAADD, NVL(FRAN_DEADD, ' ') FRAN_DEADD
+	                    , FN_CODENAME('FRAN_SE_CODE', FRAN_SE_CODE) FRAN_SE_CODE
+	                    , FRAN_LATI
+	                    , FRAN_LOTI
+	                    , FRAN_TELNO
+	                    , FOWNER_NM
+	                    , FOWNER_CELNO
+	                    , FOWNER_EMAIL
+	                    , FRAN_BIZRNO
+	                    , ATT_FILENO
+		          FROM TB_FRANCHISE
+		          WHERE HEAD_CODE = #{detailSearch.head_code}
+		          AND FRAN_CLSBIZDE IS NULL
+		          <include refid="searchFrag" />
+		          ORDER BY FRAN_SRBDE DESC
+	            ) A
+	        )B
+		   <![CDATA[
+    		WHERE RNUM >= #{startRow} AND RNUM <= ${endRow}
+    		]]>
+	</select>
+	<resultMap type="FranchiseVO" id="FranAttMap" autoMapping="true">
+		<id property="fran_code" column="FRAN_CODE"/>
+		<collection property="attachfileList" ofType="AttachfileVO" autoMapping="true">
+			<id property="att_seq" column="ATT_SEQ"/>
+		</collection>
+	</resultMap>
+	<select id="selectFran" parameterType="hashMap" resultMap="FranAttMap">
+		SELECT FR.FRAN_CODE
+			, FR.FRAN_COMNM
+			, REGEXP_REPLACE(FR.FRAN_SRBDE, '(.{4})(.{2})(.{2})', '\1-\2-\3') FRAN_SRBDE
+            , REGEXP_REPLACE(FR.FRAN_OPENDE, '(.{4})(.{2})(.{2})', '\1-\2-\3') FRAN_OPENDE
+	    	, REGEXP_REPLACE(FR.FRAN_CLSBIZDE, '(.{4})(.{2})(.{2})', '\1-\2-\3') FRAN_CLSBIZDE
+	    	, FR.FRAN_ID
+	    	, FR.FRAN_ZIPNO
+	    	, FR.FRAN_LATI
+	    	, FR.FRAN_LOTI
+		    , FR.FRAN_BAADD, NVL(FR.FRAN_DEADD, ' ') FRAN_DEADD
+		    , FR.FRAN_TELNO
+		    , FR.FOWNER_NM
+		    , FR.FOWNER_CELNO
+		    , FR.FOWNER_EMAIL
+		    , REGEXP_REPLACE(FR.FRAN_BIZRNO, '(.{3})(.{2})(.{5})', '\1-\2-\3') FRAN_BIZRNO
+		    , FR.ATT_FILENO
+		    , FN_CODENAME('FRAN_STTUS_CODE', FRAN_STTUS_CODE) FRAN_STTUS_CODE
+		    , FN_CODENAME('FRAN_SE_CODE', FRAN_SE_CODE) FRAN_SE_CODE
+		    , ATT.ATT_SEQ
+            , ATT.BIZ_SE
+            , ATT.FILE_PATH
+            , ATT.FILE_NM
+            , ATT.SAVE_FILENM
+		    , ATT.FILE_TYPE
+            , ATT.FILE_SIZE
+            , ATT.UPDATETIME
+            , ATT.UPDATEUSER_ID
+            , ATT.UPDTIME
+            , ATT.UPDUSER_ID
+		FROM TB_FRANCHISE FR LEFT OUTER JOIN TB_ATTACHFILE ATT ON FR.ATT_FILENO = ATT.ATT_FILENO
+		WHERE FR.HEAD_CODE = #{code}
+		AND FR.FRAN_CODE = #{fran_code}
+	</select>
+	
+	<select id="selectFranMap" resultType="FranchiseVO" parameterType="string">
+		 SELECT FRAN_COMNM, FRAN_LATI, FRAN_LOTI, FRAN_CODE
+         FROM TB_FRANCHISE
+         WHERE HEAD_CODE = #{code}
+         AND FRAN_CLSBIZDE IS NULL 
+	</select>
+	
+	<resultMap type="ComCodeGrpVO" id="comCodeGrpMap" autoMapping="true">
+		<id property="com_code_grp" column="COM_CODE_GRP"/>
+		<collection property="comCodeList" ofType="ComCodeVO" autoMapping="true">
+			<id property="com_code" column="COM_CODE"/>
+		</collection>
+	</resultMap>
+	<select id="selectCodeList" parameterType="String" resultMap="comCodeGrpMap">
+		SELECT A.CODE_GRP_NM, A.CODE_GRP_DC, A.COM_CODE_GRP,B.COM_CODE,
+ 			   B.COM_CODE_NM, B.COM_CODE_DC, B.UPPER_COM_CODE_GRP, B.UPPER_COM_CODE
+		FROM TB_COMCODE_GRP A INNER JOIN TB_COMCODE B ON (A.COM_CODE_GRP = B.COM_CODE_GRP)
+		WHERE A.COM_CODE_GRP = #{code} 
+		AND A.USE_AT = 'Y' AND B.USE_AT = 'Y'
+	</select>
+	
+	<insert id="insertFran" parameterType="FranchiseVO">
+		<selectKey resultType="string" order="BEFORE" keyColumn="ATT_FILENO" keyProperty="att_fileno">
+			SELECT fn_getattfileno() ATT_FILENO
+			FROM DUAL
+		</selectKey>
+		INSERT INTO TB_FRANCHISE (
+		    FRAN_CODE,
+		    HEAD_CODE,
+		    BIZRNO,
+		    FRAN_COMNM,
+		    FRAN_SRBDE,
+		    FRAN_OPENDE,
+		    FRAN_STTUS_CODE,
+		    FRAN_ID,
+		    FRAN_PASS,
+		    FRAN_ZIPNO,
+		    FRAN_BAADD,
+		    FRAN_DEADD,
+		    FRAN_SE_CODE,
+		    FRAN_LATI,
+		    FRAN_LOTI,
+		    FRAN_TELNO,
+		    FOWNER_NM,
+		    FOWNER_CELNO,
+		    FOWNER_BIRTDAY,
+		    FOWNER_EMAIL,
+		    PIN_NO,
+		    FRAN_BIZRNO,
+		    ATT_FILENO
+		) VALUES (
+		    #{fran_code,       jdbcType=VARCHAR}
+		    , #{head_code,       jdbcType=VARCHAR}
+		    , #{bizrno,          jdbcType=VARCHAR}
+		    , #{fran_comnm,      jdbcType=VARCHAR}
+		    , TO_CHAR(SYSDATE, 'YYYYMMDD')
+		    , #{fran_opende,     jdbcType=VARCHAR}
+		    , #{fran_sttus_code, jdbcType=VARCHAR}
+		    , #{fran_id,         jdbcType=VARCHAR}
+		    , #{fran_pass,       jdbcType=VARCHAR}
+		    , #{fran_zipno,      jdbcType=VARCHAR}
+		    , #{fran_baadd,      jdbcType=VARCHAR}
+		    , #{fran_deadd,      jdbcType=VARCHAR}
+		    , #{fran_se_code,    jdbcType=VARCHAR}
+		    , #{fran_lati,       jdbcType=VARCHAR}
+		    , #{fran_loti,       jdbcType=VARCHAR}
+		    , #{fran_telno,      jdbcType=VARCHAR}
+		    , #{fowner_nm,       jdbcType=VARCHAR}
+		    , #{fowner_celno,    jdbcType=VARCHAR}
+		    , #{fowner_birtday,  jdbcType=VARCHAR}
+		    , #{fowner_email,    jdbcType=VARCHAR}
+		    , #{pin_no,          jdbcType=VARCHAR}
+		    , #{fran_bizrno,     jdbcType=VARCHAR}
+		    , #{att_fileno ,      jdbcType=VARCHAR}
+		)
+	</insert>
+	
+	
+	<resultMap type="HashMap" id="headMap">
+		<result column="HEAD_BIZRNO" property="head_bizrno"/>
+		<result column="PIN_NO" property="pin_no"/>
+		<result column="FRAN_CODE" property="fran_code"/>
+	</resultMap>
+	
+	<select id="selectHeadInfo" parameterType="String" resultMap="headMap">
+		SELECT A.HEAD_BIZRNO, B.PIN_NO, CREATE_FRANCODE(A.HEAD_CODE) FRAN_CODE
+		FROM TB_HEADQUARTERS A, TB_PIN B
+		WHERE A.HEAD_CODE = B.HEAD_CODE
+		AND A.HEAD_CODE = #{code}
+	</select>
+	
+	<insert id="insertAttatches" parameterType="FranchiseVO">
+		INSERT ALL
+		<foreach collection="attachfileList" item="attatch" index="idx">
+			INTO TB_ATTACHFILE(
+			    ATT_FILENO,
+			    ATT_SEQ,
+			    BIZ_SE,
+			    FILE_PATH,
+			    FILE_NM,
+			    SAVE_FILENM,
+			    FILE_TYPE,
+			    FILE_SIZE,
+			    UPDATETIME,
+			    UPDATEUSER_ID,
+			    UPDTIME,
+			    UPDUSER_ID
+			)VALUES(
+			    #{att_fileno,jdbcType=VARCHAR},
+			    #{startAtt}+#{idx},
+			    #{attatch.biz_se,jdbcType=VARCHAR},
+			    #{attatch.file_path,jdbcType=VARCHAR},
+			    #{attatch.file_nm,jdbcType=VARCHAR},
+			    #{attatch.save_filenm,jdbcType=VARCHAR},
+			    #{attatch.file_type,jdbcType=VARCHAR},
+			    #{attatch.file_size,jdbcType=NUMERIC},
+			    SYSDATE,
+			    #{attatch.updateuser_id,jdbcType=VARCHAR},
+			    SYSDATE,
+			    #{attatch.upduser_id,jdbcType=VARCHAR}
+			)
+		</foreach>
+		SELECT * FROM DUAL
+	</insert>
+</mapper>

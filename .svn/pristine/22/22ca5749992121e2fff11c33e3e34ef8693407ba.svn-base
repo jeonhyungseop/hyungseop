@@ -1,0 +1,385 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.head.employee.dao.IHeadEmployeeDAO">
+
+<resultMap type="EmployeeVO" id="EmpMap" autoMapping="true">
+	<id property="emp_id" column="EMP_ID"/>
+	<collection property="deptList" ofType="kr.or.ddit.cfms.head.employee.vo.DeptVO" autoMapping="true">
+		<id property="dept_seq" column="DEPT_SEQ"/>
+	</collection>
+</resultMap>
+
+<!-- 파일맵 -->
+<resultMap type="EmployeeVO" id="EmpAttMap" autoMapping="true">
+	<id property="emp_id" column="EMP_ID"/>
+	<collection property="deptList" ofType="kr.or.ddit.cfms.head.employee.vo.DeptVO" autoMapping="true">
+		<id property="dept_seq" column="DEPT_SEQ"/>
+	</collection>
+	<collection property="attachfileList" ofType="AttachfileVO" autoMapping="true">
+		<id property="att_seq" column="ATT_SEQ"/>
+	</collection>
+</resultMap>
+
+
+<!-- 검색조건 -->
+<sql id="searchFrag">
+	<trim prefix="AND"> 
+		<if test="searchMap!=null and @org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.searchWord)">
+			INSTR(EMP_NM, #{searchMap.searchWord}) > 0
+		</if>
+	</trim>
+	<trim prefix="AND"> 
+		<if test="searchMap!=null and @org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.deptSeq)">
+			INSTR(EMP.DEPT_SEQ, #{searchMap.deptSeq}) > 0
+		</if>
+	</trim>
+	<trim prefix="AND"> 
+		<if test="searchMap!=null and @org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.clspCode)">
+			INSTR(EMP_CLSF_CODE, #{searchMap.clspCode}) > 0
+		</if>
+	</trim>
+		<trim prefix="AND"> 
+		<if test="searchMap!=null and @org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.leaveUseAT)">
+			<if test='searchMap.leaveUseAT eq "Y"'>
+				EMP_RETDE IS NOT NULL
+			</if>
+		</if>
+	</trim>
+</sql>
+
+
+<!-- 직원목록조회 -->
+<select id="selectEmpList" parameterType="PagingVO" resultMap="EmpAttMap">
+/* kr.or.ddit.cfms.head.employee.dao.IHeadEmployeeDAO.selectEmpList*/
+SELECT B.* 
+  FROM(
+    SELECT ROWNUM RNUM, A.* 
+      FROM(
+        SELECT EMP_ID, EMP.HEAD_CODE, EMP.DEPT_SEQ DEPT_SEQ, EMP_PASS, EMP_NM, 
+               EMP_ZIPNO, EMP_BAADD, EMP_DEADD, EMP_TELNO, EMP_CELNO, 
+               EMP_EMAIL, EMP_BIRTDAY, EMP_ENCPN, EMP_RETDE, EMP_BASE_VCDE, 
+               EMP_REMNDR_VCDE, 
+               ( SELECT FN_CODENAME('EMP_SE_CODE', EMP_SE_CODE)
+                FROM DUAL) EMP_SE_CODE,
+               ( SELECT FN_CODENAME('EMP_CLSF_CODE', EMP_CLSF_CODE)
+                FROM DUAL)EMP_CLSF_CODE, 
+               EMP_BACC, EMP_BNM, EMP.ATT_FILENO,
+               DE.PROFIT_SEQ, DE.DEPT_NM, DE.DEPT_TELNO,
+               ATT_SEQ, BIZ_SE, FILE_PATH, FILE_NM, SAVE_FILENM, 
+               FILE_TYPE, FILE_SIZE, UPDATETIME, UPDATEUSER_ID, 
+               UPDTIME, UPDUSER_ID
+          FROM TB_EMPLOYEE EMP , TB_DEPT DE, TB_ATTACHFILE AT
+          WHERE EMP.HEAD_CODE = #{head_code, jdbcType=VARCHAR}
+            <include refid="searchFrag" />
+            AND EMP.DEPT_SEQ = DE.DEPT_SEQ (+)
+            AND EMP.ATT_FILENO = AT.ATT_FILENO(+)
+            <if test='searchMap.leaveUseAT == "" or searchMap.leaveUseAT == "N"'>
+            AND EMP_RETDE IS NULL
+            </if>
+     )A   
+ )B
+<![CDATA[
+WHERE RNUM >= #{startRow} AND RNUM <= ${endRow}
+]]>
+</select>
+
+<!-- 직원 COUNT -->
+<select id="selectEmpCount" parameterType="String" resultType="int">
+/*kr.or.ddit.cfms.head.employee.dao.IHeadEmployeeDAO.selectEmpCount*/
+SELECT COUNT(*) 
+  FROM(
+    SELECT ROWNUM RNUM, A.* 
+      FROM(
+        SELECT EMP_ID, EMP.HEAD_CODE, EMP.DEPT_SEQ, EMP_PASS, EMP_NM, 
+               EMP_ZIPNO, EMP_BAADD, EMP_DEADD, EMP_TELNO, EMP_CELNO, 
+               EMP_EMAIL, EMP_BIRTDAY, EMP_ENCPN, EMP_RETDE, EMP_BASE_VCDE, 
+               EMP_REMNDR_VCDE, 
+               ( SELECT FN_CODENAME('EMP_SE_CODE', EMP_SE_CODE)
+                FROM DUAL) EMP_SE_CODE,
+               ( SELECT FN_CODENAME('EMP_CLSF_CODE', EMP_CLSF_CODE)
+                FROM DUAL)EMP_CLSF_CODE, 
+               EMP_BACC, EMP_BNM, ATT_FILENO,
+               DE.PROFIT_SEQ, DE.DEPT_NM, DE.DEPT_TELNO
+          FROM TB_EMPLOYEE EMP , TB_DEPT DE
+          WHERE EMP.HEAD_CODE = #{head_code, jdbcType=VARCHAR}
+            <include refid="searchFrag" />
+            AND EMP.DEPT_SEQ = DE.DEPT_SEQ (+)
+     )A   
+ )B
+</select>
+
+
+<!-- 공통코드 직급목록조회 -->
+<select id="comcodeECL" resultType="ComCodeVO">
+/*kr.or.ddit.cfms.head.employee.dao.IHeadEmployeeDAO.comcodeECL*/
+SELECT COM_CODE_GRP, COM_CODE, COM_CODE_NM, 
+       COM_CODE_DC, USE_AT, UPPER_COM_CODE_GRP, 
+       UPPER_COM_CODE 
+  FROM TB_COMCODE
+ WHERE COM_CODE_GRP = 'ECL'
+</select>
+
+<!-- 공통코드 직원구분 -->
+<select id="comcodeESE" resultType="ComCodeVO">
+/*kr.or.ddit.cfms.head.employee.dao.IHeadEmployeeDAO.comcodeECL*/
+SELECT COM_CODE_GRP, COM_CODE, COM_CODE_NM, 
+       COM_CODE_DC, USE_AT, UPPER_COM_CODE_GRP, 
+       UPPER_COM_CODE 
+  FROM TB_COMCODE
+ WHERE COM_CODE_GRP = 'ESE'
+</select>
+
+
+<!-- 직원등록여부 -->
+<select id="selectEmpUseAt" parameterType="String" resultType="EmployeeVO">
+/*kr.or.ddit.cfms.head.employee.dao.IHeadEmployeeDAO.selectEmpUseAt*/
+SELECT EMP_ID, HEAD_CODE
+  FROM TB_EMPLOYEE
+ WHERE HEAD_CODE = #{head_code, jdbcType=VARCHAR}
+</select>
+
+<!-- 직원있는경우 등록 -->
+<insert id="insertEmpOk" parameterType="EmployeeVO"> 
+/*kr.or.ddit.cfms.head.employee.dao.IHeadEmployeeDAO.insertEmpOk*/
+<selectKey resultType="string" order="BEFORE" keyColumn="ATT_FILENO" keyProperty="att_fileno">
+	SELECT fn_getattfileno() ATT_FILENO
+	FROM DUAL
+</selectKey>
+INSERT INTO tb_employee (
+    emp_id,
+    head_code,
+    dept_seq,
+    emp_pass,
+    emp_nm,
+    emp_zipno,
+    emp_baadd,
+    emp_deadd,
+    emp_telno,
+    emp_celno,
+    emp_email,
+    emp_birtday,
+    emp_encpn,
+    emp_retde,
+    emp_base_vcde,
+    emp_remndr_vcde,
+    emp_se_code,
+    emp_clsf_code,
+    emp_bacc,
+    emp_bnm,
+    att_fileno
+) VALUES (
+    (SELECT HEAD_CODE || 'E' ||MAX(TO_NUMBER(SUBSTR(EMP_ID, LENGTH(HEAD_CODE)+2))+1) EMP_ID
+       FROM TB_EMPLOYEE
+      WHERE HEAD_CODE = #{head_code, jdbcType=VARCHAR}
+      GROUP BY HEAD_CODE),
+      #{head_code, jdbcType=VARCHAR},
+      #{dept_seq, jdbcType=NUMERIC},
+      #{emp_pass, jdbcType=VARCHAR},
+      #{emp_nm, jdbcType=VARCHAR},
+      #{emp_zipno, jdbcType=VARCHAR},
+      #{emp_baadd, jdbcType=VARCHAR},
+      #{emp_deadd, jdbcType=VARCHAR},
+      #{emp_telno, jdbcType=VARCHAR},
+      #{emp_celno, jdbcType=VARCHAR},
+      #{emp_email, jdbcType=VARCHAR},
+      #{emp_birtday, jdbcType=VARCHAR},
+      #{emp_encpn, jdbcType=VARCHAR},
+      #{emp_retde, jdbcType=VARCHAR},
+      #{emp_base_vcde, jdbcType=NUMERIC},
+      #{emp_remndr_vcde, jdbcType=NUMERIC},
+      #{emp_se_code, jdbcType=VARCHAR},
+      #{emp_clsf_code, jdbcType=VARCHAR},
+      #{emp_bacc, jdbcType=VARCHAR},
+      #{emp_bnm, jdbcType=VARCHAR},
+      #{att_fileno, jdbcType=VARCHAR}
+)
+
+</insert>
+
+
+<!-- 직원없는경우 등록 -->
+<insert id="insertEmpNo" parameterType="EmployeeVO">
+/*kr.or.ddit.cfms.head.employee.dao.IHeadEmployeeDAO.insertEmpNo*/
+INSERT INTO tb_employee (
+    emp_id,
+    head_code,
+    dept_seq,
+    emp_pass,
+    emp_nm,
+    emp_zipno,
+    emp_baadd,
+    emp_deadd,
+    emp_telno,
+    emp_celno,
+    emp_email,
+    emp_birtday,
+    emp_encpn,
+    emp_retde,
+    emp_base_vcde,
+    emp_remndr_vcde,
+    emp_se_code,
+    emp_clsf_code,
+    emp_bacc,
+    emp_bnm,
+    att_fileno
+) VALUES (
+    (SELECT (#{head_code, jdbcType=VARCHAR} || 'E1') EMP_ID
+ 	   FROM DUAL),
+      #{head_code, jdbcType=VARCHAR},
+      #{dept_seq, jdbcType=NUMERIC},
+      #{emp_pass, jdbcType=VARCHAR},
+      #{emp_nm, jdbcType=VARCHAR},
+      #{emp_zipno, jdbcType=VARCHAR},
+      #{emp_baadd, jdbcType=VARCHAR},
+      #{emp_deadd, jdbcType=VARCHAR},
+      #{emp_telno, jdbcType=VARCHAR},
+      #{emp_celno, jdbcType=VARCHAR},
+      #{emp_email, jdbcType=VARCHAR},
+      #{emp_birtday, jdbcType=VARCHAR},
+      #{emp_encpn, jdbcType=VARCHAR},
+      #{emp_retde, jdbcType=VARCHAR},
+      #{emp_base_vcde, jdbcType=NUMERIC},
+      #{emp_remndr_vcde, jdbcType=NUMERIC},
+      #{emp_se_code, jdbcType=VARCHAR},
+      #{emp_clsf_code, jdbcType=VARCHAR},
+      #{emp_bacc, jdbcType=VARCHAR},
+      #{emp_bnm, jdbcType=VARCHAR},
+      #{att_fileno, jdbcType=VARCHAR}
+)
+</insert>
+
+<!-- 첨부파일 등록 -->
+<insert id="insertEmpImage" parameterType="EmployeeVO">
+/*kr.or.ddit.cfms.head.employee.dao.IHeadEmployeeDAO.insertEmpImage*/
+INSERT ALL
+	<foreach collection="attachfileList" item="attatch" index="idx">
+		INTO TB_ATTACHFILE(
+		    ATT_FILENO,
+		    ATT_SEQ,
+		    BIZ_SE,
+		    FILE_PATH,
+		    FILE_NM,
+		    SAVE_FILENM,
+		    FILE_TYPE,
+		    FILE_SIZE,
+		    UPDATETIME,
+		    UPDATEUSER_ID,
+		    UPDTIME,
+		    UPDUSER_ID
+		)VALUES(
+		    #{att_fileno,jdbcType=VARCHAR},
+		    #{startAtt}+#{idx},
+		    #{attatch.biz_se,jdbcType=VARCHAR},
+		    #{attatch.file_path,jdbcType=VARCHAR},
+		    #{attatch.file_nm,jdbcType=VARCHAR},
+		    #{attatch.save_filenm,jdbcType=VARCHAR},
+		    #{attatch.file_type,jdbcType=VARCHAR},
+		    #{attatch.file_size,jdbcType=NUMERIC},
+		    SYSDATE,
+		    #{attatch.updateuser_id,jdbcType=VARCHAR},
+		    SYSDATE,
+		    #{attatch.upduser_id,jdbcType=VARCHAR}
+		)
+	</foreach>
+	SELECT * FROM DUAL
+</insert>
+
+<!-- 첨부파일삭제 -->
+<delete id="deleteEmpAttatches" parameterType="String">
+/*kr.or.ddit.cfms.head.employee.dao.IHeadEmployeeDAO.deleteEmpAttatches*/
+	DELETE FROM TB_ATTACHFILE
+	WHERE ATT_FILENO = #{att_fileno}
+<!-- 	<if test="delAttSeq!=null">
+		AND ATT_SEQ IN
+		<foreach collection="delAttSeq" item="att_seq" open="(" close=")" separator=",">
+			#{att_seq}
+		</foreach>
+	</if> -->
+</delete>
+
+
+<!-- 첨부파일 saveName삭제 -->
+<select id="selectEmpSaveNamesForDelete" parameterType="String" resultType="String">
+/*kr.or.ddit.cfms.head.employee.dao.IHeadEmployeeDAO.selectEmpSaveNamesForDelete*/
+SELECT SAVE_FILENM
+FROM TB_ATTACHFILE
+WHERE ATT_FILENO = #{att_fileno}
+</select>
+
+
+
+<!-- 부서코드모음 -->
+<select id="selectDept" parameterType="String" resultType="DeptVO">
+/*kr.or.ddit.cfms.head.employee.dao.IHeadEmployeeDAO.selectDept*/
+SELECT DEPT_SEQ, DEPT_CODE, DEPT_NM 
+  FROM TB_DEPT
+ WHERE HEAD_CODE = #{head_code, jdbcType=VARCHAR}
+
+</select>
+
+
+<!-- 직원상세조회 -->
+<select id="selectEmpOne" parameterType="String" resultMap="EmpAttMap">
+/*kr.or.ddit.cfms.head.employee.dao.IHeadEmployeeDAO.selectEmpOne*/
+SELECT EMP_ID, EMP.HEAD_CODE, EMP.DEPT_SEQ, EMP_PASS, EMP_NM, 
+       EMP_ZIPNO, EMP_BAADD, EMP_DEADD, EMP_TELNO, EMP_CELNO, 
+       EMP_EMAIL, EMP_BIRTDAY, EMP_ENCPN, EMP_RETDE, EMP_BASE_VCDE,
+       EMP_REMNDR_VCDE, 
+       (SELECT FN_CODENAME('EMP_SE_CODE', EMP_SE_CODE) FROM DUAL)EMP_SE_CODE, 
+       (SELECT FN_CODENAME('EMP_CLSF_CODE', EMP_CLSF_CODE) FROM DUAL) EMP_CLSF_CODE, 
+       EMP_BACC, EMP_BNM, AT.ATT_FILENO, DE.PROFIT_SEQ, DE.DEPT_CODE, DE.DEPT_NM, 
+       DE.DEPT_TELNO ATT_SEQ, BIZ_SE, FILE_PATH, FILE_NM, SAVE_FILENM, 
+       FILE_TYPE, FILE_SIZE, UPDATETIME, 
+       UPDATEUSER_ID, UPDTIME, UPDUSER_ID 
+  FROM TB_EMPLOYEE EMP, TB_DEPT DE, TB_attachfile AT
+ WHERE EMP.DEPT_SEQ = DE.DEPT_SEQ(+)
+   AND EMP_ID = #{emp_id, jdbcType=VARCHAR}
+   AND AT.ATT_FILENO(+) = EMP.ATT_FILENO
+</select>
+
+
+<!-- 직원정보 수정 -->
+<update id="updateEmployee" parameterType="EmployeeVO">
+/*kr.or.ddit.cfms.head.employee.dao.IHeadEmployeeDAO.updateEmployee*/
+<selectKey resultType="string" order="BEFORE" keyColumn="ATT_FILENO" keyProperty="att_fileno">
+	SELECT fn_getattfileno() ATT_FILENO
+	FROM DUAL
+</selectKey>
+UPDATE TB_EMPLOYEE
+   SET EMP_NM = #{emp_nm, jdbcType=VARCHAR},
+       EMP_ZIPNO = #{emp_zipno, jdbcType=VARCHAR},
+       EMP_BAADD = #{emp_baadd, jdbcType=VARCHAR},
+       EMP_DEADD = #{emp_deadd, jdbcType=VARCHAR},
+       EMP_TELNO = #{emp_telno, jdbcType=VARCHAR},
+       EMP_CELNO = #{emp_celno, jdbcType=VARCHAR},
+       EMP_EMAIL = #{emp_email, jdbcType=VARCHAR},
+       EMP_BIRTDAY = #{emp_birtday, jdbcType=VARCHAR},
+       EMP_SE_CODE = #{emp_se_code, jdbcType=VARCHAR},
+       EMP_CLSF_CODE = #{emp_clsf_code, jdbcType=VARCHAR},
+       EMP_BACC = #{emp_bacc, jdbcType=VARCHAR},
+       EMP_BNM = #{emp_bnm, jdbcType=VARCHAR},
+       ATT_FILENO = #{att_fileno, jdbcType=VARCHAR}
+ WHERE EMP_ID = #{emp_id, jdbcType=VARCHAR}
+</update>
+
+
+<!-- 직원퇴사 처리 -->
+<update id="retdeEmp" parameterType="String">
+/*kr.or.ddit.cfms.head.employee.dao.IHeadEmployeeDAO.retdeEmp*/
+  UPDATE TB_EMPLOYEE
+     SET EMP_RETDE = SYSDATE
+   WHERE EMP_ID = #{emp_id, jdbcType=VARCHAR}
+</update>
+
+
+<!-- 직원출근체크 여부 -->
+<select id="selectAttendCheck" parameterType="String" resultType="DclzVO">
+/*kr.or.ddit.cfms.head.employee.dao.IHeadEmployeeDAO.selectAttendCheck*/
+SELECT DCLZ_SEQ, EMP_ID, DCLZ_STDRDE, TO_CHAR(ATTEND_TIME, 'hh24:mi') ATTEND_TIME, TO_CHAR(LVFFC_TIME, 'hh24:mi') LVFFC_TIME
+  FROM TB_DCLZ
+ WHERE EMP_ID = #{emp_id, jdbcType=VARCHAR}
+   AND TO_CHAR(ATTEND_TIME, 'YYYYMMDD') = TO_CHAR(SYSDATE, 'YYYYMMDD')
+ ORDER BY DCLZ_SEQ DESC
+</select>
+
+</mapper>

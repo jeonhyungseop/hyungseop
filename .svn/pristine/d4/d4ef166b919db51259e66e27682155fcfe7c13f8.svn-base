@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!--  [[개정이력(Modification Information)]]       -->
+<!--  수정일        수정자     수정내용               -->
+<!--  ==========   ======    ==============        -->
+<!--  2021. 6. 10}     이진수     최초작성               -->
+<!--  Copyright (c) 2021 by DDIT All right reserved -->
+<mapper namespace="kr.or.ddit.cfms.fran.trade.dao.ITradeDAO">
+	<sql id="searchFrag">
+		<trim prefix="WHERE" prefixOverrides="AND" suffixOverrides="OR"> 
+			<if test="detailSearch.fran_code!=null and @org.apache.commons.lang3.StringUtils@isNotBlank(detailSearch.fran_code)">
+				FRAN_CODE = #{detailSearch.fran_code}
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.searchWord)">
+				AND INSTR (FRAN_COMNM, #{searchMap.searchWord}) > 0
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.orsCode)">
+				AND INSTR (ORDER_STTUS_CODE, #{searchMap.orsCode}) > 0
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.oscCode)">
+				<choose>
+					<when test="searchMap.oscCode eq 'D0001'">
+						AND OUT_STTUS_CODE IS NULL
+					</when>	
+					<otherwise>
+						AND INSTR (OUT_STTUS_CODE, #{searchMap.oscCode}) > 0
+					</otherwise>			
+				</choose>
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.istCode)">
+				<choose>
+					<when test="searchMap.istCode eq 'D0001'">
+						AND IN_STTUS_CODE IS NULL
+					</when>	
+					<otherwise>
+						AND INSTR (IN_STTUS_CODE, #{searchMap.istCode}) > 0
+					</otherwise>			
+				</choose>
+				
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.minDate)">
+				AND ORDER_TIME  >= TO_DATE(#{searchMap.minDate}, 'YYYY-MM-DD') 
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.maxDate)">
+				<![CDATA[
+				AND ORDER_TIME  <= TO_DATE(#{searchMap.maxDate}, 'YYYY-MM-DD')
+				]]> 
+			</if>
+		</trim>	
+	</sql>
+	<select id="selectTradeCount" parameterType="PagingVO" resultType="int">
+		SELECT COUNT(*)
+		FROM V_ORDERS
+		<include refid="searchFrag" />
+	</select>
+	<select id="selectTradeList" parameterType="PagingVO" resultType="OrdersVO">
+		SELECT * 
+		FROM (
+			SELECT ROWNUM RNUM, C.*
+			FROM(
+				SELECT *
+				FROM V_ORDERS
+				<include refid="searchFrag" />
+				ORDER BY ORDER_NO DESC
+			) C
+		) D
+		WHERE RNUM BETWEEN #{startRow} AND #{endRow}
+	</select>
+	
+	<resultMap type="OutlistVO" id="outList" autoMapping="true">
+		<id property="out_seq" column="OUT_SEQ"/>
+		<association property="prodVO" javaType="FranProdVO" autoMapping="true">
+			<id property="prod_code" column="PROD_CODE"/>
+			<collection property="attachfileList" ofType="AttachfileVO" autoMapping="true">
+				<id property="att_seq" column="ATT_SEQ"/>
+			</collection>
+		</association>
+	</resultMap>
+	<select id="selectOutList" parameterType="String" resultMap="outList">
+		SELECT *
+		FROM TB_OUTLIST JOIN TB_PROD ON TB_OUTLIST.PROD_CODE = TB_PROD.PROD_CODE
+		LEFT OUTER JOIN TB_ATTACHFILE ON TB_PROD.ATT_FILENO = TB_ATTACHFILE.ATT_FILENO
+		WHERE OUT_CODE = #{out_code}
+		ORDER BY TB_OUTLIST.PROD_CODE
+	</select>
+	
+	<resultMap type="InlistVO" id="inList" autoMapping="true">
+		<id property="in_seq" column="in_SEQ"/>
+		<association property="prodVO" javaType="FranProdVO" autoMapping="true">
+			<id property="prod_code" column="PROD_CODE"/>
+			<collection property="attachfileList" ofType="AttachfileVO" autoMapping="true">
+				<id property="att_seq" column="ATT_SEQ"/>
+			</collection>
+		</association>
+	</resultMap>
+	<select id="selectInList" parameterType="String" resultMap="inList">
+		SELECT *
+		FROM TB_INLIST JOIN TB_PROD ON TB_INLIST.PROD_CODE = TB_PROD.PROD_CODE
+		LEFT OUTER JOIN TB_ATTACHFILE ON TB_PROD.ATT_FILENO = TB_ATTACHFILE.ATT_FILENO
+		WHERE IN_NO = #{in_no}
+		ORDER BY TB_INLIST.PROD_CODE
+	</select>
+	<select id="selectTradeDetail" parameterType="String" resultType="OrdersVO">
+		SELECT *
+		FROM V_ORDERS
+		WHERE ORDER_NO = #{orderNo}
+	</select>
+	
+	<resultMap type="OrdlistVO" id="order" autoMapping="true">
+		<id property="orderlist_seq" column="ORDERLIST_SEQ"/>
+		<association property="franInvenVO" javaType="FranInvenVO" autoMapping="true">
+			<id property="prod_code" column="PROD_CODE"/>
+			<collection property="attachfileList" ofType="AttachfileVO" autoMapping="true">
+				<id property="att_seq" column="ATT_SEQ"/>
+			</collection>
+		</association>
+	</resultMap>
+	<select id="selectTradeProd" parameterType="OrdersVO" resultMap="order">
+		SELECT ROWNUM RNUM, A.*
+		FROM(
+		SELECT *
+        FROM TB_ORDLIST LEFT OUTER JOIN V_FRANINVEN
+            ON(TB_ORDLIST.PROD_CODE  =  V_FRANINVEN.PROD_CODE) 
+            LEFT OUTER JOIN TB_ATTACHFILE 
+            ON (V_FRANINVEN.ATT_FILENO = TB_ATTACHFILE.ATT_FILENO)
+        WHERE ORDER_NO = #{order_no} AND FRAN_CODE = #{fran_code}
+        ) A
+	</select>
+	<select id="totalRecode" parameterType="OrdersVO" resultType="int">
+		SELECT COUNT(*)
+		FROM TB_ORDLIST
+		WHERE ORDER_NO =#{order_no}
+	</select>
+	
+	
+	<update id="updateIn" parameterType="String">
+		UPDATE TB_IN
+		SET IN_STTUS_CODE = 'A0001'
+		WHERE IN_NO = #{in_no}
+	</update>
+	
+	<update id="updateInven" statementType="CALLABLE">
+	{
+		CALL
+		P_UPDATE_FRINVEN(
+			#{P_LIST,mode=IN,typeHandler=kr.or.ddit.cfms.fran.trade.controller.InlistVOArrayTypeHandler},
+			#{P_CNT,mode=OUT,jdbcType=NUMERIC,javaType=int}
+		)
+	}
+	</update>
+</mapper>

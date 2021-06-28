@@ -1,0 +1,3 @@
+eclipse.preferences.version=1
+encoding//src/main/resources/kr/or/ddit/appInfo.properties=UTF-8
+encoding//webapp/WEB-INF/views/head/board/notice/noticeList.jsp=UTF-8

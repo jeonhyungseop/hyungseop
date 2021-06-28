@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE tiles-definitions PUBLIC "-//Apache Software Foundation//DTD Tiles Configuration 3.0//EN" "http://tiles.apache.org/dtds/tiles-config_3_0.dtd" >
+<tiles-definitions>
+  <definition name="super" template="/WEB-INF/views/template.jsp">
+  	<put-attribute name="title" value="Company 302" />
+  	<put-attribute name="sidebar" value="/includee/sidebar.jsp" />
+  	<put-attribute name="header" value="/includee/header.jsp" />
+  	<put-attribute name="body" value=""/>
+  	<put-attribute name="preScript" value="/includee/preScript.jsp" />
+  	<put-attribute name="endScript" value="/includee/endScript.jsp" />
+  </definition>
+  
+  <definition name="system" template="/WEB-INF/views/template_system.jsp">
+  	<put-attribute name="title" value="Company 302" />
+  	<put-attribute name="sidebar" value="/includee/sidebar_system.jsp" />
+  	<put-attribute name="header" value="/includee/header_system.jsp" />
+  	<put-attribute name="body" value=""/>
+  	<put-attribute name="preScript" value="/includee/preScript.jsp" />
+  	<put-attribute name="endScript" value="/includee/endScript.jsp" />
+  </definition>
+  
+  <definition name="fran" template="/WEB-INF/views/template_fran.jsp">
+  	<put-attribute name="title" value="Company 302" />
+  	<put-attribute name="sidebar" value="/includee/sidebar_fran.jsp" />
+  	<put-attribute name="header" value="/includee/header_fran.jsp" />
+  	<put-attribute name="body" value=""/>
+  	<put-attribute name="preScript" value="/includee/preScript.jsp" />
+  	<put-attribute name="endScript" value="/includee/endScript.jsp" />
+  </definition>
+  
+ <!-- admin -->
+<definition name="admin/*" extends="system">
+  	<put-attribute name="body" value="/WEB-INF/views/admin/{1}.jsp" />
+  	<put-attribute name="admin" value="admin/*" cascade="true"/>
+ </definition>
+
+<definition name="/admin/*/*" extends="system">
+  	<put-attribute name="body" value="/WEB-INF/views/admin/{1}/{2}.jsp" />
+  	<put-attribute name="admin" value="/admin/*/*" cascade="true"/>
+ </definition>
+ 
+<!--  head 가맹본부 -->
+ <definition name="head/*" extends="super">
+  	<put-attribute name="body" value="/WEB-INF/views/head/{1}.jsp" />
+  	<put-attribute name="head" value="head/*" cascade="true"/>
+ </definition>
+
+  <definition name="/head/*/*" extends="super">
+  	<put-attribute name="body" value="/WEB-INF/views/head/{1}/{2}.jsp" />
+  	<put-attribute name="head" value="/head/*/*" cascade="true"/>
+ </definition>
+
+ <!-- fran 가맹점 -->
+ <definition name="fran/*" extends="fran">
+  	<put-attribute name="body" value="/WEB-INF/views/fran/{1}.jsp" />
+  	<put-attribute name="fran" value="fran/*" cascade="true"/>
+ </definition>
+ 
+<definition name="/fran/*/*" extends="fran">
+  	<put-attribute name="body" value="/WEB-INF/views/fran/{1}/{2}.jsp" />
+  	<put-attribute name="fran" value="/fran/*/*" cascade="true"/>
+ </definition>
+
+ </tiles-definitions>

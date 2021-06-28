@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.head.changeatt.dao.IHeadChangeAttDAO">
+
+
+<resultMap type="DclzVO" id="DclzChangeMap" autoMapping="true">
+	<id property="dclz_seq" column="DCLZ_SEQ"/>
+	<collection property="employeeList" ofType="EmployeeVO" autoMapping="true">
+		<id property="emp_id" column="EMP_ID"/>	
+	</collection>
+</resultMap>
+
+<!-- 직원 수정요청관리 -->
+<select id="selectChangeAtt" parameterType="PagingVO" resultMap="DclzChangeMap">
+/*kr.or.ddit.cfms.head.changeatt.dao.IHeadChangeAttDAO.selectChangeAtt*/
+SELECT *
+  FROM(
+		SELECT ROWNUM RNUM, A.* 
+		  FROM(
+		    SELECT DCLZ_SEQ, DC.EMP_ID, DCLZ_STDRDE,
+		           TO_CHAR(ATTEND_TIME, 'HH24:MI')ATTEND_TIME, 
+                   TO_CHAR(LVFFC_TIME, 'HH24:MI')LVFFC_TIME, WORKTIME_SM,
+		           DCLZ_SE_CODE, DCLZ_CHANGE_PRVONSH, DCLZ_CHANGE_CONFM_AT
+		           HEAD_CODE, DEPT_SEQ, EMP_PASS, EMP_NM,
+		           EMP_ZIPNO, EMP_BAADD, EMP_DEADD, EMP_TELNO,
+		           EMP_CELNO, EMP_EMAIL, EMP_BIRTDAY, EMP_ENCPN, 
+		           EMP_RETDE, EMP_BASE_VCDE, EMP_REMNDR_VCDE, 
+		           EMP_SE_CODE, EMP_CLSF_CODE, EMP_BACC, EMP_BNM, ATT_FILENO
+		      FROM TB_DCLZ DC, TB_EMPLOYEE EMP
+		    WHERE DCLZ_CHANGE_CONFM_AT = 'N'
+		      AND DC.EMP_ID = EMP.EMP_ID
+		)A
+	)B
+<![CDATA[
+WHERE RNUM >= #{startRow} AND RNUM <= ${endRow}
+]]>
+</select>
+
+<!-- 수정요청관리COUNT -->
+<select id="selectChangeAttCount" parameterType="PagingVO" resultType="int">
+SELECT COUNT(*)
+  FROM(
+    SELECT DCLZ_SEQ, DC.EMP_ID, DCLZ_STDRDE,
+           ATTEND_TIME, LVFFC_TIME, WORKTIME_SM,
+           DCLZ_SE_CODE, DCLZ_CHANGE_PRVONSH, DCLZ_CHANGE_CONFM_AT
+           HEAD_CODE, DEPT_SEQ, EMP_PASS, EMP_NM,
+           EMP_ZIPNO, EMP_BAADD, EMP_DEADD, EMP_TELNO,
+           EMP_CELNO, EMP_EMAIL, EMP_BIRTDAY, EMP_ENCPN, 
+           EMP_RETDE, EMP_BASE_VCDE, EMP_REMNDR_VCDE, 
+           EMP_SE_CODE, EMP_CLSF_CODE, EMP_BACC, EMP_BNM, ATT_FILENO
+      FROM TB_DCLZ DC, TB_EMPLOYEE EMP
+    WHERE DCLZ_CHANGE_CONFM_AT = 'N'
+      AND DC.EMP_ID = EMP.EMP_ID
+)A
+</select>
+
+</mapper>

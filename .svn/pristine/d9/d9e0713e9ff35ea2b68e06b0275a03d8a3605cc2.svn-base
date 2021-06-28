@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.head.salesall.dao.IHeadSalesallDAO">
+	<select id="selectSalesallCount" parameterType="PagingVO" resultType="int">
+		SELECT COUNT(*)
+		FROM(
+		SELECT V_HEADINVEN.PROD_CODE PROD_CODE, SUM(NVL(TB_INLIST.IN_QY,0)) IN_QY, TB_IN.IN_STTUS_CODE IN_STTUS_CODE
+		FROM V_HEADINVEN LEFT OUTER JOIN TB_INLIST
+		            ON V_HEADINVEN.PROD_CODE = TB_INLIST.PROD_CODE
+		             LEFT OUTER JOIN TB_IN
+		             ON TB_INLIST.IN_NO = TB_IN.IN_NO
+		WHERE V_HEADINVEN.HEAD_CODE = #{detailSearch.head_code}  AND IN_STTUS_CODE = 'A0001' AND TO_CHAR(IN_TIME, 'yyyy/mm/dd') = TO_CHAR(SYSDATE, 'yyyy/mm/dd')
+		GROUP BY V_HEADINVEN.PROD_CODE, TB_IN.IN_STTUS_CODE
+		ORDER BY V_HEADINVEN.PROD_CODE
+		) A RIGHT OUTER JOIN TB_PROD ON A.PROD_CODE = TB_PROD.PROD_CODE
+		    LEFT OUTER JOIN TB_ATTACHFILE ON TB_PROD.ATT_FILENO = TB_ATTACHFILE.ATT_FILENO
+	</select>
+	<resultMap type="HeadProdVO" id="headprodMap" autoMapping="true">
+		<id property="prod_code" column="PROD_CODE"/>
+		<collection property="attachfileList" ofType="AttachfileVO" autoMapping="true">
+			<id property="att_seq" column="ATT_SEQ"/>
+		</collection>
+	</resultMap>
+	<select id="selectSalesallList" parameterType="PagingVO" resultMap="headprodMap">
+		SELECT *
+		FROM(
+		SELECT ROWNUM RNUM, TB_PROD.*, NVL(A.IN_QY,0) IN_QY
+		FROM(
+		SELECT V_HEADINVEN.PROD_CODE PROD_CODE, SUM(NVL(TB_INLIST.IN_QY,0)) IN_QY, TB_IN.IN_STTUS_CODE IN_STTUS_CODE
+		FROM V_HEADINVEN LEFT OUTER JOIN TB_INLIST
+		            ON V_HEADINVEN.PROD_CODE = TB_INLIST.PROD_CODE
+		             LEFT OUTER JOIN TB_IN
+		             ON TB_INLIST.IN_NO = TB_IN.IN_NO
+		WHERE V_HEADINVEN.HEAD_CODE = #{detailSearch.head_code}  AND IN_STTUS_CODE = 'A0001' AND TO_CHAR(IN_TIME, 'yyyy/mm/dd') = TO_CHAR(SYSDATE, 'yyyy/mm/dd')
+		GROUP BY V_HEADINVEN.PROD_CODE, TB_IN.IN_STTUS_CODE
+		ORDER BY V_HEADINVEN.PROD_CODE
+		) A RIGHT OUTER JOIN TB_PROD ON A.PROD_CODE = TB_PROD.PROD_CODE  
+		)B LEFT OUTER JOIN TB_ATTACHFILE ON B.ATT_FILENO = TB_ATTACHFILE.ATT_FILENO
+	 	<![CDATA[
+		WHERE RNUM >= #{startRow} AND RNUM <= #{endRow}
+		]]>
+	</select>
+</mapper>

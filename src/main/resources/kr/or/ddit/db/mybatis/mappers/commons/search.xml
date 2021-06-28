@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.search.dao.ISearchDAO">
+	<select id="searchHead" parameterType="hashMap" resultType="string">
+		SELECT HEAD_ID
+		FROM TB_HEADQUARTERS
+		WHERE HEAD_NM = #{name}
+		AND HEAD_EMAIL = #{email}
+		AND HEAD_TELNO = #{phone}
+	</select>
+
+	<select id="searchEmp" parameterType="hashMap" resultType="string">
+		SELECT EMP_ID
+		FROM TB_EMPLOYEE
+		WHERE EMP_NM = #{name}
+		AND EMP_EMAIL = #{email}
+		AND EMP_CELNO = #{phone}
+	</select>
+	
+	<select id="searchFran" parameterType="hashMap" resultType="string">
+		SELECT FRAN_ID
+		FROM TB_FRANCHISE
+		WHERE FOWNER_NM= #{name}
+		AND FOWNER_EMAIL = #{email}
+		AND FOWNER_CELNO = #{phone}
+	</select>
+	
+	<update id="updateHeadPw" parameterType="hashMap">
+		UPDATE TB_HEADQUARTERS
+		SET HEAD_PASS = #{password}
+		WHERE HEAD_ID = #{id}
+		AND HEAD_NM = #{name}
+		AND HEAD_EMAIL = #{email}
+		AND HEAD_TELNO = #{phone}
+	</update>
+	
+	<update id="updateEmpPw" parameterType="hashMap">
+		UPDATE TB_EMPLOYEE
+		SET EMP_PASS = #{password}
+		WHERE EMP_ID = #{id}
+		AND EMP_NM = #{name}
+		AND EMP_EMAIL = #{email}
+		AND EMP_CELNO = #{phone}
+	</update>
+	
+	<update id="updateFranPw" parameterType="hashMap">
+		UPDATE TB_FRANCHISE
+		SET FRAN_PASS = #{password}
+		WHERE FRAN_ID = #{id} 
+		AND FOWNER_NM= #{name}
+		AND FOWNER_EMAIL = #{email}
+		AND FOWNER_CELNO = #{phone}
+	</update>
+</mapper>

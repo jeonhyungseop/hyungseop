@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.head.changeatt.dao.IHeadChangeAttDAO">
+
+<!-- 검색조건 -->
+<sql id="searchFrag">
+	<trim prefix="AND"> 
+		<if test="searchMap!=null and @org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.searchWord)">
+			INSTR(EMP_NM, #{searchMap.searchWord}) > 0
+		</if>
+	</trim>
+	<trim prefix="AND">
+		<if test="searchMap!=null and @org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.deptSeq)">
+			INSTR(EMP.DEPT_SEQ, #{searchMap.deptSeq}) > 0
+		</if>
+	</trim>
+	<trim prefix="AND (" suffix=")" prefixOverrides="AND">
+		<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.startDate)">
+			AND DCLZ_STDRDE >= TO_DATE(#{searchMap.startDate}, 'YYYY-MM-DD') 
+		</if>
+		<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.endDate)">
+			<![CDATA[
+			AND DCLZ_STDRDE <= TO_DATE(#{searchMap.endDate}, 'YYYY-MM-DD')
+			]]> 
+		</if>
+	</trim>
+</sql>
+
+<resultMap type="DclzVO" id="DclzChangeMap" autoMapping="true">
+	<id property="dclz_seq" column="DCLZ_SEQ"/>
+	<collection property="employeeList" ofType="EmployeeVO" autoMapping="true">
+		<id property="emp_id" column="EMP_ID"/>	
+	</collection>
+	<collection property="deptList" ofType="DeptVO" autoMapping="true">
+		<id property="dept_seq" column="DEPT_SEQ"/>
+	</collection>
+</resultMap>
+
+<!-- 직원 수정요청관리 -->
+<select id="selectChangeAtt" parameterType="PagingVO" resultMap="DclzChangeMap">
+/*kr.or.ddit.cfms.head.changeatt.dao.IHeadChangeAttDAO.selectChangeAtt*/
+SELECT *
+  FROM(
+		SELECT ROWNUM RNUM, A.* 
+		  FROM(
+		    SELECT DCLZ_SEQ, DC.EMP_ID, DCLZ_STDRDE,
+		           TO_CHAR(ATTEND_TIME, 'HH24:MI')ATTEND_TIME, 
+                   TO_CHAR(LVFFC_TIME, 'HH24:MI')LVFFC_TIME, WORKTIME_SM,
+		           DCLZ_SE_CODE, DCLZ_CHANGE_PRVONSH, DCLZ_CHANGE_CONFM_AT
+		           ,EMP.HEAD_CODE, EMP.DEPT_SEQ, EMP_PASS, EMP_NM,
+		           EMP_ZIPNO, EMP_BAADD, EMP_DEADD, EMP_TELNO,
+		           EMP_CELNO, EMP_EMAIL, EMP_BIRTDAY, EMP_ENCPN, 
+		           EMP_RETDE, EMP_BASE_VCDE, EMP_REMNDR_VCDE, 
+		           EMP_SE_CODE, EMP_CLSF_CODE, EMP_BACC, EMP_BNM, ATT_FILENO,
+                   DEPT_NM, DEPT_TELNO
+		      FROM TB_DCLZ DC, TB_EMPLOYEE EMP, TB_DEPT DE
+		    WHERE DCLZ_CHANGE_CONFM_AT = 'N'
+		     <include refid="searchFrag" />
+		      AND DC.EMP_ID = EMP.EMP_ID
+              AND EMP.HEAD_CODE = #{head_code, jdbcType=VARCHAR}
+              AND EMP.DEPT_SEQ = DE.DEPT_SEQ
+		)A
+	)B
+<![CDATA[
+WHERE RNUM >= #{startRow} AND RNUM <= ${endRow}
+]]>
+</select>
+
+<!-- 수정요청관리COUNT -->
+<select id="selectChangeAttCount" parameterType="PagingVO" resultType="int">
+/*kr.or.ddit.cfms.head.changeatt.dao.IHeadChangeAttDAO.selectChangeAttCount*/
+SELECT COUNT(*)
+  FROM(
+		SELECT ROWNUM RNUM, A.* 
+		  FROM(
+		    SELECT DCLZ_SEQ, DC.EMP_ID, DCLZ_STDRDE,
+		           TO_CHAR(ATTEND_TIME, 'HH24:MI')ATTEND_TIME, 
+                   TO_CHAR(LVFFC_TIME, 'HH24:MI')LVFFC_TIME, WORKTIME_SM,
+		           DCLZ_SE_CODE, DCLZ_CHANGE_PRVONSH, DCLZ_CHANGE_CONFM_AT
+		           ,EMP.HEAD_CODE, EMP.DEPT_SEQ, EMP_PASS, EMP_NM,
+		           EMP_ZIPNO, EMP_BAADD, EMP_DEADD, EMP_TELNO,
+		           EMP_CELNO, EMP_EMAIL, EMP_BIRTDAY, EMP_ENCPN, 
+		           EMP_RETDE, EMP_BASE_VCDE, EMP_REMNDR_VCDE, 
+		           EMP_SE_CODE, EMP_CLSF_CODE, EMP_BACC, EMP_BNM, ATT_FILENO,
+                   DEPT_NM, DEPT_TELNO
+		      FROM TB_DCLZ DC, TB_EMPLOYEE EMP, TB_DEPT DE
+		    WHERE DCLZ_CHANGE_CONFM_AT = 'N'
+		     <include refid="searchFrag" />
+		      AND DC.EMP_ID = EMP.EMP_ID
+              AND EMP.HEAD_CODE = #{head_code, jdbcType=VARCHAR}
+              AND EMP.DEPT_SEQ = DE.DEPT_SEQ
+		)A
+	)B
+</select>
+
+<!-- 요청승인 -->
+<update id="ChangeOKUpdate" parameterType="DclzVO">
+/*kr.or.ddit.cfms.head.changeatt.dao.IHeadChangeAttDAO.ChangeOKUpdate*/
+UPDATE TB_DCLZ
+   SET DCLZ_CHANGE_CONFM_AT = 'Y',
+       ATTEND_TIME = TO_DATE(#{attend_time, jdbcType=VARCHAR}, 'YYYY/MM/DD HH24:MI'),
+       LVFFC_TIME = TO_DATE(#{lvffc_time, jdbcType=VARCHAR}, 'YYYY/MM/DD HH24:MI')
+ WHERE DCLZ_SEQ = #{dclz_seq, jdbcType=NUMERIC}
+</update>
+
+
+<!-- 요청 반려 -->
+<update id="ChangeRejectUpdate" parameterType="int">
+/*kr.or.ddit.cfms.head.changeatt.dao.IHeadChangeAttDAO.ChangeRejectUpdate*/
+ UPDATE TB_DCLZ
+    SET DCLZ_CHANGE_CONFM_AT = 'R'
+  WHERE DCLZ_SEQ = #{dclz_seq, jdbcType=NUMERIC}
+</update>
+
+<!-- 수정요청 일괄승인 -->
+<update id="ChangeAllUpdate" parameterType="ChangeAttendanceListVO">
+/*kr.or.ddit.cfms.head.changeatt.dao.IHeadChangeAttDAO.ChangeAllUpdate*/
+	<foreach collection="changeAttendanceListVO" item="change" separator=";" open="DECLARE BEGIN" close="; END;">
+	UPDATE TB_DCLZ
+	   SET DCLZ_CHANGE_CONFM_AT = 'Y',
+	       ATTEND_TIME = TO_DATE(#{change.attend_time, jdbcType=VARCHAR}, 'YYYY/MM/DD HH24:MI'),
+	       LVFFC_TIME = TO_DATE(#{change.lvffc_time, jdbcType=VARCHAR}, 'YYYY/MM/DD HH24:MI')
+	 WHERE DCLZ_SEQ = #{change.dclz_seq, jdbcType=NUMERIC}	
+	</foreach>
+</update>
+
+</mapper>

@@ -1,0 +1,111 @@
+package kr.or.ddit.cfms.head.franclose.controller;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.inject.Inject;
+import javax.servlet.http.HttpSession;
+
+import org.springframework.http.MediaType;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import kr.or.ddit.cfms.commons.vo.PagingVO;
+import kr.or.ddit.cfms.fran.commons.vo.FranchiseVO;
+import kr.or.ddit.cfms.head.franclose.service.IFranCloseService;
+
+/**
+ * @author 이진수
+ * @since 2021. 5. 19
+ * @version 1.0
+ * @see javax.servlet.http.HttpServlet
+ * <pre>
+ * [[개정이력(Modification Information)]]
+ * 수정일                          수정자               수정내용
+ * --------     --------    ----------------------
+ * 2021. 5. 19      작성자명       최초작성
+ * Copyright (c) 2021 by DDIT All right reserved
+ * </pre>
+ */
+@Controller
+@RequestMapping("/head/franclose")
+public class FranCloseController {
+	@Inject
+	private IFranCloseService service;
+
+	@GetMapping
+	public String closeFranList(
+		@RequestParam(value="page", required=false, defaultValue="1") int currentPage,
+		@RequestParam(value ="selector", required = false, defaultValue = "10") int selectorRow,
+		@RequestParam(value="searchComnm", required = false) String searchComnm,
+		@RequestParam(value="startDate", required = false) String startDate,
+		@RequestParam(value="endDate", required = false) String endDate,
+		@RequestParam(value="searchArea", required = false) String searchArea,
+		Model model, HttpSession session
+	) {
+		PagingVO<FranchiseVO> pagingVO  = listForAjax(currentPage, selectorRow, searchComnm, startDate, endDate, searchArea, session);
+		model.addAttribute("pagingVO", pagingVO);
+		return "/head/franclose/francloseList";
+	}
+	
+	@RequestMapping(produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+	@ResponseBody
+	public PagingVO<FranchiseVO> listForAjax(
+		@RequestParam(value="page", required=false, defaultValue="1") int currentPage,
+		@RequestParam(value ="selector", required = false, defaultValue = "10") int selectorRow,
+		@RequestParam(value="searchComnm", required = false) String searchComnm,
+		@RequestParam(value="startDate", required = false) String startDate,
+		@RequestParam(value="endDate", required = false) String endDate,
+		@RequestParam(value="searchArea", required = false) String searchArea
+		, HttpSession session
+	){
+		/**파라미터 조회 - 세션에 담긴 가맹본부 코드 저장*/
+		String code = (String) session.getAttribute("code");
+		
+		/**결과자료 객체 생성*/
+		PagingVO<FranchiseVO> pagingVO = new PagingVO<>(selectorRow, 10, currentPage);
+		pagingVO.addSearchMap("searchComnm", searchComnm);
+		pagingVO.addSearchMap("startDate", startDate);
+		pagingVO.addSearchMap("endDate", endDate);
+		pagingVO.addSearchMap("searchArea", searchArea);
+		pagingVO.setDetailSearch(new FranchiseVO(code));
+		
+		/**파라미터 검증*/
+		
+		/**서비스 데이터 구성*/
+		
+		/**서비스 요청*/
+		int totalRecord = service.retrieveClosingFranCount(pagingVO);
+		pagingVO.setTotalRecord(totalRecord);
+		
+		List<FranchiseVO> headquarterList = service.retrieveClosingFranList(pagingVO);
+		
+		pagingVO.setDataList(headquarterList);
+		
+		/**결과전송*/
+		return pagingVO;
+	}
+	
+	@PostMapping(value = "/closing", produces = MediaType.APPLICATION_JSON_UTF8_VALUE)
+	@ResponseBody
+	public Map<String, Object> registerClosing(
+		@RequestParam String franCode
+	) {
+		Map<String, Object> resultMap = new HashMap<>();
+		int cnt = service.updateFranClose(franCode);
+		if(cnt>0) {
+			resultMap.put("result", "OK");
+		}else {
+			resultMap.put("result", "FAIL");
+		}
+		return resultMap;
+	}
+	
+}
+

@@ -1,0 +1,13 @@
+package kr.or.ddit.cfms.head.salesall.service;
+
+import java.util.List;
+
+import kr.or.ddit.cfms.commons.vo.PagingVO;
+import kr.or.ddit.cfms.head.prod.vo.HeadProdVO;
+
+public interface IHeadSalesallService {
+
+	public void selectMainInfo(PagingVO<HeadProdVO> pagingVO);
+	public int retrieveSalesallCount(PagingVO<HeadProdVO> pagingVO);
+	public List<HeadProdVO> retrieveSalesallList(PagingVO<HeadProdVO> pagingVO);
+}

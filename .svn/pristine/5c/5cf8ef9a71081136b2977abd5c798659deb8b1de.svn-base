@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.head.reqvacation.dao.IHeadReqVacationDAO">
+
+
+<!-- 검색조건 -->
+<sql id="searchFrag">
+	<trim prefix="AND"> 
+		<if test="searchMap!=null and @org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.searchWord)">
+			INSTR(EMP_NM, #{searchMap.searchWord}) > 0
+		</if>
+	</trim>
+	<trim prefix="AND">
+		<if test="searchMap!=null and @org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.deptSeq)">
+			INSTR(EMP.DEPT_SEQ, #{searchMap.deptSeq}) > 0
+		</if>
+	</trim>
+	<trim prefix="AND"> 
+		<if test="searchMap!=null and @org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.clspCode)">
+			INSTR(EMP_CLSF_CODE, #{searchMap.clspCode}) > 0
+		</if>
+	</trim>
+	<trim prefix="AND"> 
+		<if test="searchMap!=null and @org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.vacationSelect)">
+			INSTR(VCATN_SE_CODE, #{searchMap.vacationSelect}) > 0
+		</if>
+	</trim>
+</sql>
+
+
+<resultMap type="VacationVO" id="vacationMAP" autoMapping="true">
+	<id property="vcreq_seq" column="VCREQ_SEQ"/>
+	<collection property="employeeList" ofType="EmployeeVO" autoMapping="true">
+		<id property="emp_id" column="EMP_ID"/>
+	</collection>
+	<collection property="deptList" ofType="kr.or.ddit.cfms.head.employee.vo.DeptVO" autoMapping="true">
+		<id property="dept_seq" column="DEPT_SEQ"/>
+	</collection>
+</resultMap>
+
+
+
+<!-- 휴가승인 요청 리스트 -->
+<select id="reqVacationList" parameterType="PagingVO" resultMap="vacationMAP">
+/*kr.or.ddit.cfms.head.reqvacation.dao.IHeadReqVacationDAO.reqVacationList*/
+SELECT * 
+  FROM(
+    SELECT ROWNUM RNUM, A.* 
+      FROM (
+        SELECT  VCREQ_SEQ, VA.EMP_ID, VCATN_STARTDE, 
+                VCATN_ENDDE, VCATN_USEDE, VCATN_PRVONSH, 
+                VCATN_CONFM_AT,
+                (SELECT FN_CODENAME('VCATN_SE_CODE', VCATN_SE_CODE)
+                  FROM DUAL)VCATN_SE_CODE
+                , EMP_NM,
+                (SELECT FN_CODENAME('EMP_CLSF_CODE', EMP_CLSF_CODE)
+                  FROM DUAL) EMP_CLSF_CODE,
+                DEPT_CODE, DEPT_NM, DEPT_TELNO
+          FROM TB_VACTION VA, TB_EMPLOYEE EMP, TB_DEPT DE
+         WHERE VA.EMP_ID = EMP.EMP_ID
+         <include refid="searchFrag" />
+           AND EMP.DEPT_SEQ = DE.DEPT_SEQ(+)
+           AND VCATN_CONFM_AT IS NULL
+           AND EMP.HEAD_CODE = #{head_code, jdbcType=VARCHAR}
+         ORDER BY VCATN_STARTDE DESC
+    )A
+)
+<![CDATA[
+WHERE RNUM >= #{startRow} AND RNUM <= ${endRow}
+]]>
+</select>
+
+
+<!-- 휴가승인 요청리스트 COUNT -->
+<select id="reqVacationCount" parameterType="PagingVO" resultType="int">
+/*kr.or.ddit.cfms.head.reqvacation.dao.IHeadReqVacationDAO.reqVacationCount*/
+SELECT COUNT(*) 
+  FROM(
+    SELECT ROWNUM RNUM, A.* 
+      FROM (
+        SELECT  VCREQ_SEQ, VA.EMP_ID, VCATN_STARTDE, 
+                VCATN_ENDDE, VCATN_USEDE, VCATN_PRVONSH, 
+                VCATN_CONFM_AT,
+                (SELECT FN_CODENAME('VCATN_SE_CODE', VCATN_SE_CODE)
+                  FROM DUAL)VCATN_SE_CODE
+                , EMP_NM,
+                (SELECT FN_CODENAME('EMP_CLSF_CODE', EMP_CLSF_CODE)
+                  FROM DUAL) EMP_CLSF_CODE,
+                DEPT_CODE, DEPT_NM, DEPT_TELNO
+          FROM TB_VACTION VA, TB_EMPLOYEE EMP, TB_DEPT DE
+         WHERE VA.EMP_ID = EMP.EMP_ID
+         <include refid="searchFrag" />
+           AND EMP.DEPT_SEQ = DE.DEPT_SEQ(+)
+           AND VCATN_CONFM_AT IS NULL
+           AND EMP.HEAD_CODE = #{head_code, jdbcType=VARCHAR}
+         ORDER BY VCATN_STARTDE DESC
+    )A
+)
+</select>
+
+
+<!-- 휴가 승인 -->
+<update id="okVacation" parameterType="VacationVO">
+/*kr.or.ddit.cfms.head.reqvacation.dao.IHeadReqVacationDAO.okVacation*/
+UPDATE  TB_VACTION
+   SET VCATN_CONFM_AT = 'Y'
+ WHERE VCREQ_SEQ = #{vcreq_seq, jdbcType=NUMERIC}
+</update>
+
+<update id="updateRemndrVcde" parameterType="VacationVO">
+  UPDATE TB_EMPLOYEE
+     SET EMP_REMNDR_VCDE = 
+         (   SELECT EMP_REMNDR_VCDE
+               FROM TB_EMPLOYEE
+              where emp_id = #{emp_id, jdbcType=VARCHAR}) - #{emp_minus}
+   WHERE EMP_ID = #{emp_id, jdbcType=VARCHAR}
+</update>
+
+
+<!-- 휴가 반려 -->
+<update id="noVacation" parameterType="int">
+/*kr.or.ddit.cfms.head.reqvacation.dao.IHeadReqVacationDAO.noVacation*/
+UPDATE  TB_VACTION
+   SET VCATN_CONFM_AT = 'N'
+ WHERE VCREQ_SEQ = #{vcreq_seq, jdbcType=NUMERIC}
+</update>
+
+
+<!-- 휴가캘린더 -->
+<select id="reqCalendar" parameterType="String" resultMap="vacationMAP">
+/*kr.or.ddit.cfms.head.reqvacation.dao.IHeadReqVacationDAO.reqCalendar*/
+ SELECT  VCREQ_SEQ, VA.EMP_ID, VCATN_STARTDE, 
+                VCATN_ENDDE, VCATN_USEDE, VCATN_PRVONSH, 
+                VCATN_CONFM_AT,
+                (SELECT FN_CODENAME('VCATN_SE_CODE', VCATN_SE_CODE)
+                  FROM DUAL)VCATN_SE_CODE
+                , EMP_NM,
+                (SELECT FN_CODENAME('EMP_CLSF_CODE', EMP_CLSF_CODE)
+                  FROM DUAL) EMP_CLSF_CODE,
+                DEPT_CODE, DEPT_NM, DEPT_TELNO
+          FROM TB_VACTION VA, TB_EMPLOYEE EMP, TB_DEPT DE
+         WHERE VA.EMP_ID = EMP.EMP_ID
+           AND EMP.DEPT_SEQ = DE.DEPT_SEQ(+)
+            AND VCATN_CONFM_AT = 'Y'
+           AND EMP.HEAD_CODE = #{head_code, jdbcType=VARCHAR}
+         ORDER BY VCATN_STARTDE DESC
+</select>
+
+
+<!-- 직원목록조회 -->
+<select id="selectCurrentMonth" parameterType="String" resultMap="vacationMAP">
+/*kr.or.ddit.cfms.head.reqvacation.dao.IHeadReqVacationDAO.selectCurrentMonth*/
+SELECT distinct VA.EMP_ID, EMP.EMP_ID, EMP_NM , 
+        DEPT_NM
+  FROM TB_VACTION VA, TB_EMPLOYEE EMP, TB_DEPT DE
+ WHERE VCATN_STARTDE BETWEEN (SELECT TO_DATE(TO_CHAR(TRUNC(SYSDATE,'MM'),'YYYYMMDD'), 'YYYYMMDD') FROM DUAL)
+                         AND (SELECT TO_DATE(TO_CHAR(LAST_DAY(SYSDATE), 'YYYYMMDD'), 'YYYYMMDD') FROM DUAL)
+   AND VA.EMP_ID = EMP.EMP_ID
+   AND EMP.HEAD_CODE = #{head_code, jdbcType=VARCHAR}
+   AND DE.DEPT_SEQ = EMP.DEPT_SEQ
+</select>
+
+
+<!-- 휴가요청 일괄승인 -->
+<update id="vacationAllUpdate" parameterType="ReqVacationListVO">
+/*kr.or.ddit.cfms.head.reqvacation.dao.IHeadReqVacationDAO.vacationAllUpdate*/
+<foreach collection="reqVacationListVO" item="req" separator=";" open="DECLARE BEGIN" close="; END;">
+UPDATE TB_VACTION
+   SET VCATN_CONFM_AT = 'Y'
+ WHERE VCREQ_SEQ = #{req.vcreq_seq, jdbcType=NUMERIC}	
+</foreach>
+</update>
+
+
+<!-- 휴가 월변경할때  -->
+<select id="selectChangeMonth" parameterType="VacationVO" resultMap="vacationMAP">
+SELECT distinct VA.EMP_ID, EMP.EMP_ID, EMP_NM ,
+        DEPT_NM
+  FROM TB_VACTION VA, TB_EMPLOYEE EMP, TB_DEPT DE
+ WHERE VCATN_STARTDE BETWEEN (SELECT TO_DATE(#{changeMonth, jdbcType=VARCHAR}, 'YYYYMMDD') FROM DUAL)
+                         AND (SELECT TO_DATE(TO_CHAR(LAST_DAY(#{changeMonth, jdbcType=VARCHAR}), 'YYYYMMDD'), 'YYYYMMDD') FROM DUAL)
+   AND VA.EMP_ID = EMP.EMP_ID
+   AND EMP.HEAD_CODE = #{head_code, jdbcType=VARCHAR}
+   AND DE.DEPT_SEQ = EMP.DEPT_SEQ
+</select>
+
+</mapper>

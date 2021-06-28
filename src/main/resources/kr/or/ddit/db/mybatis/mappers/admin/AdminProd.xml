@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.admin.prod.dao.IAdminProdDAO">
+
+<sql id="searchFrag">
+	<trim prefix="WHERE" prefixOverrides="AND">
+		<if test="searchMap!=null and @org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.searchWord)">
+			INSTR(SYSPAY_NM, #{searchMap.searchWord}) > 0
+		</if>
+	</trim>
+</sql>
+
+<select id="selectProdCount" parameterType="PagingVO" resultType="int">
+SELECT COUNT(*) 
+  FROM TB_SYSTEMPAYMENT
+	<include refid="searchFrag"/>
+</select>
+
+<select id="selectProdList" parameterType="PagingVO" resultType="AdminProdVO">
+SELECT B.* 
+  FROM( 
+        SELECT ROWNUM RNUM, A.* 
+          FROM(
+            SELECT
+                SYSPAY_CODE,
+                SYSPAY_NM,
+                SYSPAY_MONTH,
+                SYSPAY_USER_NUM,
+                SYSPAY_PC
+            FROM
+                TB_SYSTEMPAYMENT
+              	<include refid="searchFrag"/>
+            ) A
+        ) B
+  <![CDATA[
+    WHERE RNUM >= #{startRow} AND RNUM <= ${endRow}
+    ]]>
+</select>
+
+<insert id="insertProd" parameterType="AdminProdVO">
+	<selectKey resultType="String" order="BEFORE" keyProperty="syspay_code">
+		SELECT (RPAD('GD',(LENGTH(SUBSTR(MAX(SYSPAY_CODE),3))-LENGTH(TO_NUMBER(SUBSTR(MAX(SYSPAY_CODE),3))+1)+2),0)|| (TO_NUMBER(SUBSTR(MAX(SYSPAY_CODE),3))+1)) SYSPAY_CODE
+		  FROM TB_SYSTEMPAYMENT
+	</selectKey>
+	
+	INSERT INTO TB_SYSTEMPAYMENT (
+	    SYSPAY_CODE,
+	    SYSPAY_NM,
+	    SYSPAY_MONTH,
+	    SYSPAY_USER_NUM,
+	    SYSPAY_PC,
+	    MEMO
+	) VALUES (
+	    (SELECT (RPAD('GD',(LENGTH(SUBSTR(MAX(SYSPAY_CODE),3))-LENGTH(TO_NUMBER(SUBSTR(MAX(SYSPAY_CODE),3))+1)+2),0)|| (TO_NUMBER(SUBSTR(MAX(SYSPAY_CODE),3))+1)) SYSPAY_CODE
+           FROM TB_SYSTEMPAYMENT),
+	    #{syspay_nm, jdbcType=VARCHAR},
+	    #{syspay_month,jdbcType=NUMERIC},
+	    #{syspay_user_num,jdbcType=NUMERIC},
+	    #{syspay_pc,jdbcType=NUMERIC},
+	    #{memo, jdbcType=VARCHAR}
+	)
+</insert>
+
+
+<select id="selectProdOne" parameterType="String" resultType="AdminProdVO">
+	SELECT SYSPAY_CODE, SYSPAY_NM, SYSPAY_MONTH, 
+	       SYSPAY_USER_NUM, SYSPAY_PC, MEMO
+	  FROM TB_SYSTEMPAYMENT
+	 WHERE SYSPAY_CODE = #{syspay_code, jdbcType=VARCHAR}
+</select>
+
+<update id="updateProd" parameterType="AdminProdVO">
+	UPDATE TB_SYSTEMPAYMENT
+	   SET SYSPAY_NM = #{syspay_nm, jdbcType=VARCHAR},
+	       SYSPAY_MONTH = #{syspay_month,jdbcType=NUMERIC},
+	       SYSPAY_USER_NUM = #{syspay_user_num,jdbcType=NUMERIC},
+	       SYSPAY_PC = #{syspay_pc,jdbcType=NUMERIC},
+	       MEMO = #{memo, jdbcType=VARCHAR}
+	 WHERE SYSPAY_CODE = #{syspay_code, jdbcType=VARCHAR}
+</update>
+
+
+<delete id="deleteProd" parameterType="AdminProdVO">
+	DELETE FROM TB_SYSTEMPAYMENT 
+	WHERE SYSPAY_CODE IN
+	<foreach collection="sysCodes" item="syspay_code" open="(" close=")" separator=",">
+		#{syspay_code}
+	</foreach>
+</delete>
+
+</mapper>

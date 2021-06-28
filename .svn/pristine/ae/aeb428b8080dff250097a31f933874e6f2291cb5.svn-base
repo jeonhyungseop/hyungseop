@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.head.reqvacation.dao.IHeadReqVacationDAO">
+
+<resultMap type="VacationVO" id="vacationMAP" autoMapping="true">
+	<id property="vcreq_seq" column="VCREQ_SEQ"/>
+	<collection property="employeeList" ofType="EmployeeVO" autoMapping="true">
+		<id property="emp_id" column="EMP_ID"/>
+	</collection>
+</resultMap>
+
+
+<!-- 휴가승인 요청 리스트 -->
+<select id="reqVacationList" parameterType="PagingVO" resultMap="vacationMAP">
+/*kr.or.ddit.cfms.head.reqvacation.dao.IHeadReqVacationDAO.reqVacationList*/
+SELECT * 
+  FROM(
+    SELECT ROWNUM RNUM, A.* 
+      FROM (
+        SELECT  VCREQ_SEQ, VA.EMP_ID, VCATN_STARTDE, 
+                VCATN_ENDDE, VCATN_USEDE, VCATN_PRVONSH, 
+                VCATN_CONFM_AT, VCATN_SE_CODE
+          FROM TB_VACTION VA, TB_EMPLOYEE EMP
+         WHERE VA.EMP_ID = EMP.EMP_ID
+           AND HEAD_CODE = #{head_code, jdbcType=VARCHAR}
+         ORDER BY VCATN_STARTDE DESC
+    )A
+)
+</select>
+
+
+<!-- 휴가승인 요청리스트 COUNT -->
+<select id="reqVacationCount" parameterType="PagingVO" resultType="int">
+/*kr.or.ddit.cfms.head.reqvacation.dao.IHeadReqVacationDAO.reqVacationCount*/
+SELECT COUNT(*) 
+  FROM(
+    SELECT ROWNUM RNUM, A.* 
+      FROM (
+        SELECT  VCREQ_SEQ, VA.EMP_ID, VCATN_STARTDE, 
+                VCATN_ENDDE, VCATN_USEDE, VCATN_PRVONSH, 
+                VCATN_CONFM_AT, VCATN_SE_CODE
+          FROM TB_VACTION VA, TB_EMPLOYEE EMP
+         WHERE VA.EMP_ID = EMP.EMP_ID
+           AND HEAD_CODE = #{head_code, jdbcType=VARCHAR}
+         ORDER BY VCATN_STARTDE DESC
+    )A
+)
+</select>
+
+
+
+
+</mapper>

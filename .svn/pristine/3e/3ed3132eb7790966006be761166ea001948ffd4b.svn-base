@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.head.royal.dao.IHeadRoyalDao">
+	<resultMap type="ComCodeGrpVO" id="comCodeGrpMap" autoMapping="true">
+		<id property="com_code_grp" column="COM_CODE_GRP"/>
+		<collection property="comCodeList" ofType="ComCodeVO" autoMapping="true">
+			<id property="com_code" column="COM_CODE"/>
+		</collection>
+	</resultMap>
+	
+	<select id="selectCodeList" parameterType="String" resultMap="comCodeGrpMap">
+		SELECT A.CODE_GRP_NM, A.CODE_GRP_DC, A.COM_CODE_GRP,B.COM_CODE,
+ 			   B.COM_CODE_NM, B.COM_CODE_DC, B.UPPER_COM_CODE_GRP, B.UPPER_COM_CODE
+		FROM TB_COMCODE_GRP A INNER JOIN TB_COMCODE B ON (A.COM_CODE_GRP = B.COM_CODE_GRP)
+		WHERE A.COM_CODE_GRP = #{code} 
+		AND A.USE_AT = 'Y' AND B.USE_AT = 'Y'
+	</select>
+	
+	<select id="selectBillList" parameterType="PagingVO" resultType="HeadBillVO">
+		SELECT B.* 
+		FROM(
+		      SELECT ROWNUM RNUM, A.* 
+		      FROM(
+		          SELECT
+	                    BILL.BILCLCT_SEQ
+                        , BILL.FRAN_CODE
+                        , FR.FRAN_COMNM
+                        , BILL.HEAD_CODE
+                        , BILL.BILCLCT_SCHDE
+                        , BILL.BILCLCT_COMDE
+                        , BILL.BILCLCT_CN
+                        , FN_CODENAME('BILCLCT_STTUS_CODE', BILL.BILCLCT_STTUS_CODE) BILCLCT_STTUS_CODE
+                        , FN_CODENAME('PAY_SE_CODE', BILL.PAY_MT_CODE) PAY_MT_CODE
+		          FROM TB_FRANCHISE FR LEFT OUTER JOIN TB_BILL BILL ON (FR.FRAN_CODE = BILL.FRAN_CODE AND FR.HEAD_CODE = BILL.HEAD_CODE)
+                  WHERE BILL.HEAD_CODE = #{detailSearch.head_code}
+                  <include refid="searchFrag"/>
+                  ORDER BY BILCLCT_SCHDE DESC
+	            ) A
+	        )B
+		   <![CDATA[
+    		WHERE RNUM >= #{startRow} AND RNUM <= ${endRow}
+    		]]>
+	</select>
+	
+	<select id="selectBillCount" parameterType="PagingVO" resultType="int">
+		SELECT COUNT(*)
+		FROM TB_FRANCHISE FR LEFT OUTER JOIN TB_BILL BILL ON (FR.FRAN_CODE = BILL.FRAN_CODE AND FR.HEAD_CODE = BILL.HEAD_CODE)
+		WHERE BILL.HEAD_CODE = #{detailSearch.head_code}
+		<include refid="searchFrag"/>
+	</select>
+	
+	<sql id="searchFrag">
+		<trim prefix="AND (" suffix=")" prefixOverrides="AND">
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.searchNm)">
+				AND	INSTR(FRAN_COMNM, #{searchMap.searchNm}) > 0 
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.bscCode)">
+				AND	BILCLCT_STTUS_CODE = #{searchMap.bscCode}
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.pscCode)">
+				AND	PAY_MT_CODE = #{searchMap.pscCode}
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.startDate)">
+				AND BILCLCT_COMDE >= TO_DATE(#{searchMap.startDate}, 'YYYY-MM-DD') 
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.endDate)">
+				<![CDATA[
+				AND BILCLCT_COMDE <= TO_DATE(#{searchMap.endDate}, 'YYYY-MM-DD')
+				]]> 
+			</if>
+		</trim>	
+	</sql>
+	
+	<select id="selectRoyalChart" parameterType="String" resultType="HeadRoyalVO">
+		SELECT HEAD_CODE
+		       , ROYALTY
+		       , REGEXP_REPLACE(ROYALTY_APLI_START_DE, '(.{4})(.{2})(.{2})', '\1-\2-\3') ROYALTY_APLI_START_DE
+		       , ROYALTY_USE_AT
+		FROM TB_ROYAL
+		WHERE HEAD_CODE = #{code}
+	</select>
+	
+	<select id="selectRoyalList" parameterType="PagingVO" resultType="HeadRoyalVO">
+		SELECT B.* 
+		FROM(
+		      SELECT ROWNUM RNUM, A.* 
+		      FROM(
+		          SELECT C.*
+                  FROM(SELECT HEAD_CODE
+                   , ROYALTY
+                   , REGEXP_REPLACE(ROYALTY_APLI_START_DE, '(.{4})(.{2})(.{2})', '\1-\2-\3') ROYALTY_APLI_START_DE
+                   , ROYALTY_USE_AT
+                   , NVL(ROYALPREV.LAST_DAY-TO_DATE(ROYALTY_APLI_START_DE)+1, CEIL(SYSDATE-TO_DATE(ROYALTY_APLI_START_DE))) USE_DAY
+                   , TO_CHAR(LAST_DAY, 'YYYY-MM-DD') LAST_DAY
+                    FROM TB_ROYAL,
+                    (
+                        SELECT TO_DATE(LEAD(ROYALTY_APLI_START_DE, 1) OVER(ORDER BY ROYALTY_APLI_START_DE))-(INTERVAL '1' DAY) AS LAST_DAY
+                        , ROYALTY_APLI_START_DE AS NEXT_DAY
+                        FROM TB_ROYAL
+                        WHERE HEAD_CODE=#{detailSearch.head_code}
+                    ) ROYALPREV
+                    WHERE TB_ROYAL.ROYALTY_APLI_START_DE = ROYALPREV.NEXT_DAY
+                    )C
+                    WHERE HEAD_CODE=#{detailSearch.head_code}
+                    <include refid="royalSearchFrag"/>
+                    ORDER BY ROYALTY_APLI_START_DE DESC
+	            ) A
+	        )B
+    		 <![CDATA[
+    		WHERE RNUM >= #{startRow} AND RNUM <= ${endRow}
+    		]]>
+	</select>
+	
+	<select id="selectRoyalCount" parameterType="PagingVO" resultType="int">
+		SELECT COUNT(*)
+		FROM (
+		    SELECT C.*
+		    FROM(SELECT HEAD_CODE
+		        , ROYALTY
+		        , REGEXP_REPLACE(ROYALTY_APLI_START_DE, '(.{4})(.{2})(.{2})', '\1-\2-\3') ROYALTY_APLI_START_DE
+		        , ROYALTY_USE_AT
+		        , NVL(ROYALPREV.LAST_DAY-TO_DATE(ROYALTY_APLI_START_DE)+1, CEIL(SYSDATE-TO_DATE(ROYALTY_APLI_START_DE))) USE_DAY
+		        , TO_CHAR(LAST_DAY, 'YYYY-MM-DD') LAST_DAY
+		        FROM TB_ROYAL,
+		        (
+		            SELECT TO_DATE(LEAD(ROYALTY_APLI_START_DE, 1) OVER(ORDER BY ROYALTY_APLI_START_DE))-(INTERVAL '1' DAY) AS LAST_DAY
+		            , ROYALTY_APLI_START_DE AS NEXT_DAY
+		            FROM TB_ROYAL
+		            WHERE HEAD_CODE=#{detailSearch.head_code}
+		        ) ROYALPREV
+		        WHERE TB_ROYAL.ROYALTY_APLI_START_DE = ROYALPREV.NEXT_DAY
+		    )C
+		     WHERE HEAD_CODE=#{detailSearch.head_code}
+		     <include refid="royalSearchFrag"/>
+		)
+	</select>
+	
+	<sql id="royalSearchFrag">
+		<trim prefix="AND (" suffix=")" prefixOverrides="AND">
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.minPrice)">
+				AND	ROYALTY  >= #{searchMap.minPrice}
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.maxPrice)">
+				<![CDATA[
+					AND	ROYALTY  <= #{searchMap.maxPrice}
+				]]> 
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.startDate)">
+				AND ROYALTY_APLI_START_DE >= TO_DATE(#{searchMap.startDate}, 'YYYY-MM-DD') 
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.endDate)">
+				<![CDATA[
+				AND ROYALTY_APLI_START_DE <= TO_DATE(#{searchMap.endDate}, 'YYYY-MM-DD')
+				]]> 
+			</if>
+		</trim>	
+	</sql>
+	
+	<select id="updateRoyalJob" statementType="CALLABLE" parameterType="map">
+		<!-- CALLABLE을 사용해야 procedure를 호출해서 사용할수 있다. -->
+		{
+			CALL MEMBERDELETEPROC(#{code})		
+		}
+	</select>
+</mapper>

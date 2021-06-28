@@ -1,0 +1,18 @@
+package kr.or.ddit.cfms.head.salesall.dao;
+
+import java.util.List;
+
+import org.springframework.stereotype.Repository;
+
+import kr.or.ddit.cfms.commons.vo.PagingVO;
+import kr.or.ddit.cfms.head.prod.vo.HeadProdVO;
+
+@Repository
+public interface IHeadSalesallDAO {
+
+	public int selectSalesallCount(PagingVO<HeadProdVO> pagingVO);
+
+	public List<HeadProdVO> selectSalesallList(PagingVO<HeadProdVO> pagingVO);
+
+
+}

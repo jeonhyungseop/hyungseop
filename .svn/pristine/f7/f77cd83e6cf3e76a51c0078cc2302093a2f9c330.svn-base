@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.head.commons.dao.IHeadMainDAO">
+
+<select id="selectDashOrd" resultType="DashVO">
+/*kr.or.ddit.cfms.head.commons.dao.IHeadMainDAO.selectDashOrd*/
+SELECT DASH_ID, DASH_SE, DASH_ORD, DASH_NM, DASH_DC 
+FROM TB_DASH
+WHERE DASH_SE = 'B0001'
+<![CDATA[
+  AND DASH_ORD > 2 
+]]>
+ORDER BY DASH_ORD
+</select>
+
+<update id="updateDashOrd" parameterType="DashListVO">
+/*kr.or.ddit.cfms.head.commons.dao.IHeadMainDAO.updateDashOrd*/
+<foreach collection="dashListVO" index="index" item="dash" separator=";" open="DECLARE BEGIN" close="; END;">
+update tb_dash
+   set dash_ord = (#{index}+3)
+ where dash_id = #{dash.dash_id, jdbcType=VARCHAR }
+ </foreach>
+</update>
+
+<resultMap type="CustomerorderVO" id="custom" autoMapping="true">
+	<id property="cord_code" column="CORD_CODE"/>
+		<collection property="saleList" ofType="SaleVO" autoMapping="true">
+			<id property="cord_code" column="CORD_CODE"/>
+		</collection>
+</resultMap>
+
+<!-- 가맹점 리스트 조회 -->
+	<select id="selectFranchiseList" parameterType="map" resultType="FranchiseVO">
+		/*kr.or.ddit.cfms.head.commons.dao.IHeadMainDAO.selectFranchiseList */
+		SELECT
+		    FRAN_CODE,
+		    HEAD_CODE,
+		    BIZRNO,
+		    FRAN_COMNM,
+		    FRAN_SRBDE,
+		    FRAN_OPENDE,
+		    FRAN_CLSBIZDE,
+		    FRAN_STTUS_CODE,
+		    FRAN_ID,
+		    FRAN_PASS,
+		    FRAN_ZIPNO,
+		    FRAN_BAADD,
+		    FRAN_DEADD,
+		    FRAN_SE_CODE,
+		    FRAN_LATI,
+		    FRAN_LOTI,
+		    FRAN_TELNO,
+		    FOWNER_NM,
+		    FOWNER_CELNO,
+		    FOWNER_BIRTDAY,
+		    FOWNER_EMAIL,
+		    PIN_NO,
+		    AUTH_PASS,
+		    FRAN_BIZRNO,
+		    ATT_FILENO
+		FROM
+		    TB_FRANCHISE
+		WHERE
+		    HEAD_CODE = #{headCode}
+		ORDER BY FRAN_CODE
+	</select>
+
+<!-- 가맹점 별 하루 판매 총액 조회 -->
+	<select id="selectDaySaleList" parameterType="Map" resultMap="custom">
+		/*kr.or.ddit.cfms.head.commons.dao.IHeadMainDAO.selectDaySaleList */
+		SELECT DAYS, TOTAL_ORDMONEY
+			FROM
+			(
+			    SELECT ROWNUM RNUM, C.* 
+			    FROM
+			    (
+			        SELECT TO_CHAR(A.DT,'MMDD') DAYS, SUM(B.ORDPAY_MONEY) TOTAL_ORDMONEY
+			        FROM V_PRESYSDATE30  A LEFT OUTER JOIN 
+			                    (
+			                    SELECT FRAN_CODE, ORDPAY_TIME, ORDPAY_MONEY
+			                    FROM V_CORDSALELISTS
+			                    WHERE SUBSTR(FRAN_CODE,0,5) = #{headCode}
+			                    ) B
+			                    ON TO_CHAR(A.DT,'YYYYMMDD') = TO_CHAR(B.ORDPAY_TIME,'YYYYMMDD')
+			        GROUP BY A.DT
+			        ORDER BY DAYS
+			    ) C
+			)
+			WHERE RNUM > 15
+	</select>
+
+</mapper>

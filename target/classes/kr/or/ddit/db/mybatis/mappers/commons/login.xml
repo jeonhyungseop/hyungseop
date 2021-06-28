@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.login.dao.ILoginDAO">
+	<select id="selectForAuth" parameterType="UserVO"
+		resultType="UserVO">
+			SELECT ID, PASS, SE, TBNM, ROLE, NAME
+			FROM V_MEMBER
+			WHERE ID = #{id}
+	</select>
+	
+	<select id="selectHead" parameterType="String" resultType="HeadquartersVO">
+		SELECT HEAD_ID, HEAD_CODE
+		FROM TB_HEADQUARTERS
+		WHERE HEAD_ID = #{head_id}
+	</select>
+	
+	<select id="selectEmp" parameterType="String" resultType="EmployeeVO">
+		SELECT EMP_ID, HEAD_CODE
+		FROM TB_EMPLOYEE
+		WHERE EMP_ID = #{emp_id}
+	</select>
+	
+	<select id="selectFran" parameterType="String" resultType="FranchiseVO">
+		SELECT FRAN_CODE, FRAN_ID
+		FROM TB_FRANCHISE
+		WHERE FRAN_ID = #{fran_id}
+	</select>
+</mapper>

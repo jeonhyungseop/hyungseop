@@ -1,0 +1,31 @@
+attatchPath=d:/attatches
+boardImages=/boardImages
+prodImages=/prodImages
+contentFolder=d:/contents
+
+#attatch=${user.home}/attatches
+#adminNotice=${user.home}/attatches/admin/notice
+attatch=d:/attatches
+adminNotice=d:/attatches/admin/notice
+notice=/board/notice
+free=/board/free
+event=/board/event
+headBL=/headBL
+franBL=/fran/franBL
+franBLThumbnail=/fran/franBL/thumbnail
+fran=/fran
+emp=/emp
+empThumbnail=/emp/thumbnail
+
+#\uc5ec\uae30\ub3c4 \uc218\uc815\ud574\uc57c\ud568 
+
+#/attatches/HTC01/board/notice
+#attatch+adminNotice =  
+#attatch+"/\uac00\ub9f9\ubcf8\ubd80\ucf54\ub4dc"+notice = \uacf5\uc9c0\uc0ac\ud56d
+#attatch+"/\uac00\ub9f9\ubcf8\ubd80\ucf54\ub4dc"+free
+#/attatch+"/\uac00\ub9f9\ubcf8\ubd80\ucf54\ub4dc"+event
+#/attatch+"/\uac00\ub9f9\ubcf8\ubd80\ucf54\ub4dc"+headBL
+#/attatch+"/\uac00\ub9f9\ubcf8\ubd80\ucf54\ub4dc"+franBL
+#/attatch+"/\uac00\ub9f9\ubcf8\ubd80\ucf54\ub4dc"+franBLThumbnail
+#/attatch+"/\uac00\ub9f9\ubcf8\ubd80\ucf54\ub4dc"+emp
+#/attatch+"/\uac00\ub9f9\ubcf8\ubd80\ucf54\ub4dc"+empThumbnail

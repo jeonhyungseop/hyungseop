@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.fran.dayreport.dao.IFranDayReportDAO">
+	<!-- 단일 가맹점 한달 일일 매출 조회 -->
+	<select id="selectDaySaleByFranList" parameterType="Map" resultType="CustomerorderVO">
+		/*kr.or.ddit.cfms.head.dayreport.dao.IHeadDayReportDAO.selectDaySaleByFranList */
+		SELECT TO_CHAR(C.DT,'MMDD') DAYS, NVL(SALESUM,0) TOTAL_ORDMONEY
+		FROM V_PRESYSDATE30 C LEFT OUTER JOIN  
+		            (
+		                SELECT TO_CHAR(A.ORDPAY_TIME,'YYYYMMDD' ) SALEDAY, SUM(A.ORDPAY_MONEY) SALESUM
+		                FROM TB_SALE A LEFT OUTER JOIN TB_CUSTOMERORDER B
+		                            ON A.CORD_CODE = B.CORD_CODE
+		                WHERE B.FRAN_CODE = #{franCode}
+		                      AND A.PAY_STTUS_CODE = 'A0001'
+		                GROUP BY TO_CHAR(A.ORDPAY_TIME,'YYYYMMDD' )
+		            ) D
+		             ON TO_CHAR(C.DT,'YYYYMMDD') = D.SALEDAY
+		ORDER BY TO_CHAR(C.DT,'YYYYMMDD')
+	</select>
+	
+	<!-- 가맹점 별 한달 목표 매출 조회 -->
+	<select id="selectFranTargetMoney" parameterType="String" resultType="int">
+		/*kr.or.ddit.cfms.head.dayreport.dao.IHeadDayReportDAO.selectFranTargetMoney */
+		SELECT NVL(TARGET_MONEY,0) TARGET_MONEY
+		FROM TB_TARGET
+		WHERE FRAN_CODE = #{franCode}
+			 <![CDATA[
+              AND   (TARGET_BASE_YEAR||(CASE WHEN TARGET_BASE_MONTH <10 THEN '0'||TARGET_BASE_MONTH ELSE TARGET_BASE_MONTH END)) =TO_CHAR(SYSDATE,'YYYYMM')
+			 ]]>
+	</select>
+	
+	<!-- 가맹점 별 한달 매출 합계 조회 -->
+	<select id="selectFranSumMoney" parameterType="String" resultType="int">
+		/*kr.or.ddit.cfms.head.dayreport.dao.IHeadDayReportDAO.selectFranSumMoney */
+		SELECT SUM(A.ORDPAY_MONEY)
+		FROM TB_SALE A LEFT OUTER JOIN TB_CUSTOMERORDER B
+		            ON A.CORD_CODE = B.CORD_CODE
+		WHERE A.PAY_STTUS_CODE = 'A0001'
+		              AND B.FRAN_CODE = #{franCode}
+		              AND TO_CHAR(A.ORDPAY_TIME, 'YYYYMM') = TO_CHAR(SYSDATE,'YYYYMM')
+	</select>
+	
+	<!-- 가맹점 별 목표달성률 조회 -->
+	<select id="selectFranTargetRate" parameterType="String" resultType="double">
+		/*kr.or.ddit.cfms.head.dayreport.dao.IHeadDayReportDAO.selectFranTargetRate */
+		SELECT
+			ROUND((
+			    (
+			        SELECT SUM(A.ORDPAY_MONEY)
+			        FROM TB_SALE A LEFT OUTER JOIN TB_CUSTOMERORDER B
+			                    ON A.CORD_CODE = B.CORD_CODE
+			        WHERE A.PAY_STTUS_CODE = 'A0001'
+			                      AND B.FRAN_CODE = #{franCode}
+			                      AND TO_CHAR(A.ORDPAY_TIME, 'YYYYMM') = TO_CHAR(SYSDATE,'YYYYMM')
+			    )/
+			    (
+			        SELECT NVL(TARGET_MONEY,1) TARGET_MONEY
+			        FROM TB_TARGET
+			        WHERE FRAN_CODE = #{franCode}
+			        	  <![CDATA[
+			              AND   (TARGET_BASE_YEAR||(CASE WHEN TARGET_BASE_MONTH <10 THEN '0'||TARGET_BASE_MONTH ELSE TARGET_BASE_MONTH END)) =TO_CHAR(SYSDATE,'YYYYMM')
+			    		  ]]>
+			    ) 
+			) * 100, 3 ) AVG
+		FROM DUAL
+	</select>
+	
+	<!-- 가맹점 한달 주문 건수 조회 -->
+	<select id="selectTotalCord" parameterType="String" resultType="int">
+		/*kr.or.ddit.cfms.head.dayreport.dao.IHeadDayReportDAO.selectTotalCord */
+		SELECT COUNT(*)
+		FROM V_CORDSALELISTS
+		WHERE  FRAN_CODE = #{franCode}
+               AND TO_CHAR(ORDPAY_TIME, 'YYYYMM') = TO_CHAR(SYSDATE,'YYYYMM')
+		
+	</select>
+	
+	<!-- 가맹점 주문 내역 조회 -->
+	<select id="selectFranCordList" parameterType="PagingVO" resultType="CordsalelistsVO">
+	    /*kr.or.ddit.cfms.head.dayreport.dao.IHeadDayReportDAO.selectFranCordList */
+		SELECT *
+		FROM 
+		(
+			SELECT ROWNUM RNUM, A.*
+			FROM 
+				(
+				SELECT  CORD_CODE,
+					    FRAN_CODE,
+					    FRAN_COMNM,
+					    CORD_TIME,
+					    CORD_STTUS_CODE,
+					    CORD_STTUS_NM,
+					    CORD_CL_CODE,
+					    CORD_CL_NM,
+					    CORD_TOTAL,
+					    ORDPAY_NO,
+					    ORDPAY_TIME,
+					    ORDPAY_MONEY,
+					    PAY_STTUS_CODE,
+					    PAY_STTUS_NM,
+					    PAY_SE_CODE,
+					    PAY_SE_NM
+				FROM V_CORDSALELISTS
+				WHERE  FRAN_CODE = #{fran_code}
+		               AND TO_CHAR(ORDPAY_TIME, 'YYYYMMDD') = #{searchMap.searchDate }
+	        	) A
+        	)
+        	WHERE RNUM BETWEEN #{startRow} AND #{endRow}
+	</select>
+	
+	<!-- 가맹점 주문 내역 갯수 -->
+	<select id="selectFranCordListCount" parameterType="PagingVO" resultType="int">
+	     /*kr.or.ddit.cfms.head.dayreport.dao.IHeadDayReportDAO.selectFranCordListCount */
+		SELECT COUNT(*)
+		FROM V_CORDSALELISTS
+		WHERE  FRAN_CODE = #{fran_code}
+               AND TO_CHAR(ORDPAY_TIME, 'YYYYMMDD') = #{searchMap.searchDate }
+	</select>
+
+	<!-- 결제내역 상세내역 -->
+	<select id="selectPaylist" parameterType="String" resultType="CordlistVO">
+		/*kr.or.ddit.cfms.head.dayreport.dao.IHeadDayReportDAO.selectPaylist */
+		SELECT
+		    CORD_SEQ,
+		    CORD_CODE,
+		    A.GOODS_CODE GOODS_CODE,
+            B.GOODS_NM GOODS_NM,
+		    FRAN_CODE,
+		    GOODS_QY,
+		    GOODS_PC,
+		    ORDPAY_NO
+		FROM
+		    TB_CORDLIST A LEFT OUTER JOIN TB_HEADGOODS B
+            ON A.GOODS_CODE = B.GOODS_CODE
+		WHERE ORDPAY_NO = #{ordpay_no}
+	</select>
+	
+</mapper>

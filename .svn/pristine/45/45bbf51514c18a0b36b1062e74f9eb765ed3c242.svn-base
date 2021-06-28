@@ -1,0 +1,284 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper
+	namespace="kr.or.ddit.cfms.head.mypage.dao.IHeadMypageDAO">
+
+	<resultMap type="EmployeeVO" id="EmpMap" autoMapping="true">
+		<id property="emp_id" column="EMP_ID" />
+		<collection property="deptList"
+			ofType="kr.or.ddit.cfms.head.employee.vo.DeptVO" autoMapping="true">
+			<id property="dept_seq" column="DEPT_SEQ" />
+		</collection>
+	</resultMap>
+
+	<resultMap type="EmployeeVO" id="EmpAttMap"
+		autoMapping="true">
+		<id property="emp_id" column="EMP_ID" />
+		<collection property="deptList"
+			ofType="kr.or.ddit.cfms.head.employee.vo.DeptVO" autoMapping="true">
+			<id property="dept_seq" column="DEPT_SEQ" />
+		</collection>
+		<collection property="attachfileList" ofType="AttachfileVO"
+			autoMapping="true">
+			<id property="att_seq" column="ATT_SEQ" />
+		</collection>
+	</resultMap>
+
+	<resultMap type="kr.or.ddit.cfms.head.mypage.vo.headVO"
+		id="headAttMap" autoMapping="true">
+		<id property="head_id" column="HEAD_ID" />
+		<collection property="attachfileList" ofType="AttachfileVO"
+			autoMapping="true">
+			<id property="att_seq" column="ATT_SEQ" />
+		</collection>
+	</resultMap>
+
+
+	<select id="selectMyOne" parameterType="String"
+		resultMap="EmpAttMap">
+		/*kr.or.ddit.cfms.head.employee.dao.IHeadEmployeeDAO.selectEmpOne*/
+		SELECT EMP_ID, EMP.HEAD_CODE, EMP.DEPT_SEQ, EMP_PASS, EMP_NM,
+		EMP_ZIPNO, EMP_BAADD, EMP_DEADD, EMP_TELNO, EMP_CELNO,
+		EMP_EMAIL,
+		EMP_BIRTDAY, EMP_ENCPN, EMP_RETDE, EMP_BASE_VCDE,
+		EMP_REMNDR_VCDE,
+		EMP_SE_CODE,
+		(SELECT FN_CODENAME('EMP_CLSF_CODE', EMP_CLSF_CODE) FROM
+		DUAL) EMP_CLSF_CODE,
+		EMP_BACC, EMP_BNM, AT.ATT_FILENO, DE.PROFIT_SEQ,
+		DE.DEPT_CODE,
+		DE.DEPT_NM,
+		DE.DEPT_TELNO ATT_SEQ, BIZ_SE, FILE_PATH,
+		FILE_NM, SAVE_FILENM,
+		FILE_TYPE, FILE_SIZE, UPDATETIME,
+		UPDATEUSER_ID,
+		UPDTIME, UPDUSER_ID
+		FROM TB_EMPLOYEE EMP, TB_DEPT DE, TB_attachfile AT
+		WHERE EMP.DEPT_SEQ = DE.DEPT_SEQ(+)
+		AND EMP_ID = #{emp_id,
+		jdbcType=VARCHAR}
+		AND AT.ATT_FILENO(+) = EMP.ATT_FILENO
+	</select>
+
+	<select id="selectHeadMy" parameterType="String"
+		resultMap="headAttMap">
+		SELECT
+				HEAD_CODE,
+				HEAD_ID,
+				HEAD_PASS,
+				HEAD_NM,
+				HEAD_COMNM,
+				HEAD_ZIPNO,
+				HEAD_BAADD,
+				HEAD_DEADD,
+				HEAD_TELNO,
+				HEAD_EMAIL,
+				HEAD_SRBDE,
+				HEAD_CHARGERNM,
+				INDUTY_CODE,
+				REPAY_AT,
+				HEAD_LEDATE,
+				HEAD_BIZRNO,
+				BASE_WORKTIME,
+				LUNCH_STARTTIME,
+				LUNCH_ENDTIME,
+				DINNER_STARTTIME,
+				DINNER_ENDTIME,
+				SALARY_BASE_DE,
+				AT.ATT_FILENO,
+				HEAD_COMNM_EM,BIZ_SE, FILE_PATH,
+				FILE_NM, SAVE_FILENM,
+				FILE_TYPE, FILE_SIZE, UPDATETIME
+		  FROM
+				TB_HEADQUARTERS HEAD,TB_ATTACHFILE AT
+		WHERE   HEAD_ID =#{head_id,jdbcType=VARCHAR}
+				AND AT.ATT_FILENO(+) = HEAD.ATT_FILENO
+	</select>
+
+	<!-- 공통코드 직급목록조회 -->
+	<select id="comcodeECL" resultType="ComCodeVO">
+		/*kr.or.ddit.cfms.head.employee.dao.IHeadEmployeeDAO.comcodeECL*/
+		SELECT COM_CODE_GRP, COM_CODE, COM_CODE_NM,
+		COM_CODE_DC, USE_AT,
+		UPPER_COM_CODE_GRP,
+		UPPER_COM_CODE
+		FROM TB_COMCODE
+		WHERE COM_CODE_GRP =
+		'ECL'
+	</select>
+
+	<!-- 공통코드 직원구분 -->
+	<select id="comcodeESE" resultType="ComCodeVO">
+		/*kr.or.ddit.cfms.head.employee.dao.IHeadEmployeeDAO.comcodeECL*/
+		SELECT COM_CODE_GRP, COM_CODE, COM_CODE_NM,
+		COM_CODE_DC, USE_AT,
+		UPPER_COM_CODE_GRP,
+		UPPER_COM_CODE
+		FROM TB_COMCODE
+		WHERE COM_CODE_GRP =
+		'ESE'
+	</select>
+
+	<update id="updateMypage" parameterType="EmployeeVO">
+		/*kr.or.ddit.cfms.head.employee.dao.IHeadEmployeeDAO.updateEmployee*/
+		<selectKey resultType="string" order="BEFORE"
+			keyColumn="ATT_FILENO" keyProperty="att_fileno">
+			SELECT fn_getattfileno()
+			ATT_FILENO
+			FROM DUAL
+		</selectKey>
+		UPDATE TB_EMPLOYEE
+		SET EMP_NM = #{emp_nm, jdbcType=VARCHAR},
+		EMP_ZIPNO =	#{emp_zipno, jdbcType=VARCHAR},
+		EMP_BAADD = #{emp_baadd,jdbcType=VARCHAR},
+		EMP_DEADD = #{emp_deadd, jdbcType=VARCHAR},
+		EMP_TELNO = #{emp_telno, jdbcType=VARCHAR},
+		EMP_CELNO = #{emp_celno,jdbcType=VARCHAR},
+		EMP_EMAIL = #{emp_email, jdbcType=VARCHAR},
+		EMP_BIRTDAY = #{emp_birtday, jdbcType=VARCHAR},
+		EMP_SE_CODE=#{emp_se_code,jdbcType=VARCHAR},
+		EMP_BACC = #{emp_bacc,jdbcType=VARCHAR},
+		EMP_BNM = #{emp_bnm, jdbcType=VARCHAR},
+		ATT_FILENO =#{att_fileno, jdbcType=VARCHAR}
+		WHERE EMP_ID =#{emp_id,jdbcType=VARCHAR}
+	</update>
+	
+	<update id="updateNoImgEmpMyloyee" parameterType="EmployeeVO">
+	<selectKey resultType="string" order="BEFORE" keyColumn="ATT_FILENO" keyProperty="att_fileno">
+ SELECT ATT_FILENO
+   FROM TB_ATTACHFILE
+  WHERE ATT_FILENO  = #{att_fileno, jdbcType=VARCHAR}
+</selectKey>
+		UPDATE TB_EMPLOYEE
+		SET EMP_NM = #{emp_nm, jdbcType=VARCHAR},
+		EMP_ZIPNO =	#{emp_zipno, jdbcType=VARCHAR},
+		EMP_BAADD = #{emp_baadd,jdbcType=VARCHAR},
+		EMP_DEADD = #{emp_deadd, jdbcType=VARCHAR},
+		EMP_TELNO = #{emp_telno, jdbcType=VARCHAR},
+		EMP_CELNO = #{emp_celno,jdbcType=VARCHAR},
+		EMP_EMAIL = #{emp_email, jdbcType=VARCHAR},
+		EMP_BIRTDAY = #{emp_birtday, jdbcType=VARCHAR},
+		EMP_SE_CODE=#{emp_se_code,jdbcType=VARCHAR},
+		EMP_BACC = #{emp_bacc,jdbcType=VARCHAR},
+		EMP_BNM = #{emp_bnm, jdbcType=VARCHAR},
+		ATT_FILENO =#{att_fileno, jdbcType=VARCHAR}
+		WHERE EMP_ID =#{emp_id,jdbcType=VARCHAR}
+	</update>
+	
+
+	<select id="selectMemberForAuth" parameterType="string"
+		resultType="EmployeeVO">
+		SELECT EMP_ID, EMP_PASS, EMP_NM
+		, EMP_EMAIL
+
+		FROM TB_EMPLOYEE
+		WHERE EMP_ID = #{emp_id}
+	</select>
+
+	<select id="selectSe" parameterType="string"
+		resultType="kr.or.ddit.cfms.head.mypage.vo.vmemberVO">
+		SELECT *
+		FROM V_MEMBER
+		WHERE ID = #{id,jdbcType=VARCHAR}
+	</select>
+
+
+	<select id="selectHeadMemberForAuth" parameterType="string"
+		resultType="kr.or.ddit.cfms.head.mypage.vo.headVO">
+		SELECT HEAD_ID, HEAD_PASS, HEAD_NM
+		, HEAD_EMAIL
+		FROM
+		TB_HEADQUARTERS
+		WHERE HEAD_ID = #{head_id}
+	</select>
+
+
+
+
+	<update id="updateheadMypage"
+		parameterType="kr.or.ddit.cfms.head.mypage.vo.headVO">
+		<selectKey resultType="string" order="BEFORE"
+			keyColumn="ATT_FILENO" keyProperty="att_fileno">
+			SELECT fn_getattfileno()
+			ATT_FILENO
+			FROM DUAL
+		</selectKey>
+		UPDATE TB_HEADQUARTERS
+		SET
+		HEAD_NM = #{head_nm, jdbcType=VARCHAR},
+		HEAD_COMNM =#{head_comnm, jdbcType=VARCHAR},
+		HEAD_ZIPNO = #{head_zipno, jdbcType=VARCHAR},
+		HEAD_BAADD =#{head_baadd, jdbcType=VARCHAR},
+		HEAD_DEADD =#{head_deadd, jdbcType=VARCHAR},
+		HEAD_TELNO =#{head_telno, jdbcType=VARCHAR},
+		HEAD_EMAIL =#{head_email, jdbcType=VARCHAR},
+		HEAD_CHARGERNM =#{head_chargernm, jdbcType=VARCHAR},	
+		ATT_FILENO = #{att_fileno, jdbcType=VARCHAR}		
+		WHERE HEAD_ID =
+		#{head_id,jdbcType=VARCHAR}
+
+	</update>
+	
+		<update id="updateheadNoImgMypage"
+		parameterType="kr.or.ddit.cfms.head.mypage.vo.headVO">
+	<selectKey resultType="string" order="BEFORE" keyColumn="ATT_FILENO" keyProperty="att_fileno">
+ SELECT ATT_FILENO
+   FROM TB_ATTACHFILE
+  WHERE ATT_FILENO  = #{att_fileno, jdbcType=VARCHAR}
+</selectKey>
+		UPDATE TB_HEADQUARTERS
+		SET
+		HEAD_NM = #{head_nm, jdbcType=VARCHAR},
+		HEAD_COMNM =#{head_comnm, jdbcType=VARCHAR},
+		HEAD_ZIPNO = #{head_zipno, jdbcType=VARCHAR},
+		HEAD_BAADD =#{head_baadd, jdbcType=VARCHAR},
+		HEAD_DEADD =#{head_deadd, jdbcType=VARCHAR},
+		HEAD_TELNO =#{head_telno, jdbcType=VARCHAR},
+		HEAD_EMAIL =#{head_email, jdbcType=VARCHAR},
+		HEAD_CHARGERNM =#{head_chargernm, jdbcType=VARCHAR},	
+		ATT_FILENO = #{att_fileno, jdbcType=VARCHAR}		
+		WHERE HEAD_ID =
+		#{head_id,jdbcType=VARCHAR}
+
+	</update>
+	
+	<insert id="insertheadMyImage" parameterType="kr.or.ddit.cfms.head.mypage.vo.headVO">
+/*kr.or.ddit.cfms.head.employee.dao.IHeadEmployeeDAO.insertEmpImage*/
+INSERT ALL
+	<foreach collection="attachfileList" item="attatch" index="idx">
+		INTO TB_ATTACHFILE(
+		    ATT_FILENO,
+		    ATT_SEQ,
+		    BIZ_SE,
+		    FILE_PATH,
+		    FILE_NM,
+		    SAVE_FILENM,
+		    FILE_TYPE,
+		    FILE_SIZE,
+		    UPDATETIME,
+		    UPDATEUSER_ID,
+		    UPDTIME,
+		    UPDUSER_ID
+		)VALUES(
+		    #{att_fileno,jdbcType=VARCHAR},
+		    #{startAtt}+#{idx},
+		    #{attatch.biz_se,jdbcType=VARCHAR},
+		    #{attatch.file_path,jdbcType=VARCHAR},
+		    #{attatch.file_nm,jdbcType=VARCHAR},
+		    #{attatch.save_filenm,jdbcType=VARCHAR},
+		    #{attatch.file_type,jdbcType=VARCHAR},
+		    #{attatch.file_size,jdbcType=NUMERIC},
+		    SYSDATE,
+		    #{attatch.updateuser_id,jdbcType=VARCHAR},
+		    SYSDATE,
+		    #{attatch.upduser_id,jdbcType=VARCHAR}
+		)
+	</foreach>
+	SELECT * FROM DUAL
+</insert>
+
+
+
+
+
+</mapper>

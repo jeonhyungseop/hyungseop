@@ -1,0 +1,62 @@
+package kr.or.ddit.cfms.fran.trade.service;
+
+import java.util.List;
+
+import javax.inject.Inject;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+
+import kr.or.ddit.cfms.commons.vo.ComCodeGrpVO;
+import kr.or.ddit.cfms.commons.vo.PagingVO;
+import kr.or.ddit.cfms.fran.trade.dao.ITradeDAO;
+import kr.or.ddit.cfms.head.inven.dao.IHeadInvenDAO;
+import kr.or.ddit.cfms.head.limit.service.IHeadLimitService;
+import kr.or.ddit.cfms.head.limit.vo.OrdersVO;
+
+@Service
+public class TradeServiceImpl implements ITradeService{
+	private static Logger logger = LoggerFactory.getLogger(TradeServiceImpl.class);
+	
+	@Inject
+	private ITradeDAO tradeDAO;
+	@Inject
+	private IHeadInvenDAO codeDAO;
+	@Inject
+	private IHeadLimitService limitService;
+	@Override
+	public void selectMainInfo(PagingVO<OrdersVO> pagingVO) {
+		// 페이지 레코드 수
+		int totalRecord = retirveTradeCount(pagingVO);
+		pagingVO.setTotalRecord(totalRecord);
+		
+		// 조회한 데이터 리스트 저장
+		List<OrdersVO> ordersList = retirveTradeList(pagingVO);
+		pagingVO.setDataList(ordersList);
+	}
+
+	@Override
+	public ComCodeGrpVO retrieveCodeList(String code) {
+		return codeDAO.selectCodeList(code);
+	}
+
+	@Override
+	public int retirveTradeCount(PagingVO<OrdersVO> pagingVO) {
+		return tradeDAO.selectTradeCount(pagingVO);
+	}
+
+	@Override
+	public List<OrdersVO> retirveTradeList(PagingVO<OrdersVO> pagingVO) {
+		return tradeDAO.selectTradeList(pagingVO);
+	}
+	
+	@Override
+	public OrdersVO retriveTradeDetail(String orderNo) {
+		OrdersVO orderVO = limitService.retriveHeadLimitDetail(orderNo);
+		orderVO.setOutListVO(tradeDAO.selectOutList(orderVO.getOut_code()));
+		orderVO.setInListVO(tradeDAO.selectInList(orderVO.getIn_no()));
+		return orderVO;
+	}
+
+}

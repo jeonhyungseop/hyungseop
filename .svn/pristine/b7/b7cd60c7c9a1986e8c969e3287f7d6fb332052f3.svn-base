@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.head.salary.dao.IHeadSalaryDAO">
+
+<!-- 검색조건 -->
+<sql id="searchFrag">
+	<trim prefix="AND"> 
+		<if test="searchMap!=null and @org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.searchWord)">
+			INSTR(EMP_NM, #{searchMap.searchWord}) > 0
+		</if>
+	</trim>
+	<trim prefix="AND"> 
+		<if test="searchMap!=null and @org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.deptSeq)">
+			INSTR(EMP.DEPT_SEQ, #{searchMap.deptSeq}) > 0
+		</if>
+	</trim>
+	<trim prefix="AND"> 
+		<if test="searchMap!=null and @org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.re_currentDate)">
+			INSTR(SALARY_DE, #{searchMap.re_currentDate}) > 0
+		</if>
+	</trim>
+</sql>
+
+<resultMap type="SalaryVO" id="MySalaryMap" autoMapping="true">
+	<id property="salary_seq" column="SALARY_SEQ"/>
+	<collection property="employeeList" ofType="EmployeeVO" autoMapping="true"> 
+		<id property="emp_id" column="EMP_ID"/>
+	</collection>
+	<collection property="deptList" ofType="DeptVO" autoMapping="true">
+		<id property="dept_seq" column="DEPT_SEQ"/>
+	</collection>
+	<collection property="headList" ofType="HeadquartersVO" autoMapping="true">
+		<id property="head_code" column="HEAD_CODE"/>
+	</collection>
+</resultMap>
+
+<select id="selectSalaryList" parameterType="PagingVO" resultMap="MySalaryMap">
+/*kr.or.ddit.cfms.head.salary.dao.IHeadSalaryDAO.selectSalaryList*/
+SELECT B.* 
+  FROM (
+    SELECT ROWNUM RNUM, A.* 
+      FROM(
+        SELECT HEAD_COMNM, EMP.EMP_ID, EMP_NM, DEPT_NM, SALARY_SEQ, SALARY_DE, SALARY_MONEY
+               ,DEPT_CODE,
+               (SELECT FN_CODENAME('EMP_SE_CODE', EMP_SE_CODE)
+                  FROM DUAL) EMP_SE_CODE,
+               (SELECT FN_CODENAME('EMP_CLSF_CODE', EMP_CLSF_CODE)
+                  FROM DUAL) EMP_CLSF_CODE
+          FROM TB_SALARY SA, TB_EMPLOYEE EMP, TB_HEADQUARTERS HE, TB_DEPT DE
+         WHERE SA.EMP_ID = EMP.EMP_ID
+         <include refid="searchFrag" />
+           AND EMP.HEAD_CODE = HE.HEAD_CODE
+           AND DE.DEPT_SEQ(+) = EMP.DEPT_SEQ
+           AND EMP.HEAD_CODE = #{head_code, jdbcType=VARCHAR}
+         ORDER BY SALARY_DE DESC
+        )A   
+ )B
+ <![CDATA[
+WHERE RNUM >= #{startRow} AND RNUM <= ${endRow}
+]]>
+</select>
+
+<select id="selectSalaryCount" parameterType="PagingVO" resultType="int">
+/*kr.or.ddit.cfms.head.salary.dao.IHeadSalaryDAO.selectSalaryCount*/
+SELECT COUNT(*) 
+  FROM (
+    SELECT ROWNUM RNUM, A.* 
+      FROM(
+        SELECT HEAD_COMNM, EMP.EMP_ID, EMP_NM, DEPT_NM, SALARY_SEQ, SALARY_DE, SALARY_MONEY
+               ,DEPT_CODE,
+               (SELECT FN_CODENAME('EMP_SE_CODE', EMP_SE_CODE)
+                  FROM DUAL) EMP_SE_CODE,
+               (SELECT FN_CODENAME('EMP_CLSF_CODE', EMP_CLSF_CODE)
+                  FROM DUAL) EMP_CLSF_CODE
+          FROM TB_SALARY SA, TB_EMPLOYEE EMP, TB_HEADQUARTERS HE, TB_DEPT DE
+         WHERE SA.EMP_ID = EMP.EMP_ID
+         <include refid="searchFrag" />
+           AND EMP.HEAD_CODE = HE.HEAD_CODE
+           AND DE.DEPT_SEQ(+) = EMP.DEPT_SEQ
+           AND EMP.HEAD_CODE = #{head_code, jdbcType=VARCHAR}
+         ORDER BY SALARY_DE DESC
+        )A   
+ )B
+</select>
+
+
+
+</mapper>

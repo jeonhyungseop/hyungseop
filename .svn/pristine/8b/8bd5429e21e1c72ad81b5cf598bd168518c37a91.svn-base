@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.fran.mypage.dao.IFranMypageDAO">
+
+	<resultMap type="kr.or.ddit.cfms.fran.mypage.vo.franMypageVO"
+		id="franAttMap" autoMapping="true">
+		<id property="fran_code" column="FRAN_CODE" />
+		<collection property="attachfileList" ofType="AttachfileVO"
+			autoMapping="true">
+			<id property="att_seq" column="ATT_SEQ" />
+		</collection>
+	</resultMap>
+	
+	<select id="selectFranMy" parameterType="String" resultMap="franAttMap">
+		SELECT
+		    FRAN_CODE,
+		    HEAD_CODE,
+		    BIZRNO,
+		    FRAN_COMNM,
+		    FRAN_SRBDE,
+		    FRAN_OPENDE,
+		    FRAN_CLSBIZDE,
+		    FRAN_STTUS_CODE,
+		    FRAN_ID,
+		    FRAN_PASS,
+		    FRAN_ZIPNO,
+		    FRAN_BAADD,
+		    FRAN_DEADD,
+		    FRAN_SE_CODE,
+		    FRAN_LATI,
+		    FRAN_LOTI,
+		    FRAN_TELNO,
+		    FOWNER_NM,
+		    FOWNER_CELNO,
+		    FOWNER_BIRTDAY,
+		    FOWNER_EMAIL,
+		    PIN_NO,
+		    AUTH_PASS,
+		    FRAN_BIZRNO,
+		    AT.ATT_FILENO,
+		    BIZ_SE, 
+		    FILE_PATH,
+			FILE_NM, 
+			SAVE_FILENM,
+			FILE_TYPE, 
+			FILE_SIZE,
+		    UPDTIME
+		FROM TB_FRANCHISE FRAN , TB_ATTACHFILE AT
+	   WHERE FRAN_ID =#{fran_id,jdbcType=VARCHAR} 
+	         AND AT.ATT_FILENO(+) = FRAN.ATT_FILENO
+	
+	
+	</select>
+
+	<select id="selectSe" parameterType="string"
+		resultType="kr.or.ddit.cfms.head.mypage.vo.vmemberVO">
+		SELECT *
+		FROM V_MEMBER
+		WHERE ID = #{id,jdbcType=VARCHAR}
+	</select>
+	
+	<select id="selectFranMemberForAuth" parameterType="string"
+		resultType="kr.or.ddit.cfms.fran.mypage.vo.franMypageVO">
+		SELECT FRAN_ID, FRAN_PASS, FOWNER_NM
+		, FOWNER_EMAIL
+
+		FROM TB_FRANCHISE
+		WHERE FRAN_ID = #{fran_id}
+	</select>
+	
+
+</mapper>

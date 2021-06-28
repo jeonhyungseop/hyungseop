@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.admin.notice.dao.IboardDAO">
+
+
+	<sql id="searchFrag">
+		<trim prefix="WHERE" prefixOverrides="AND" suffixOverrides="OR"> 
+			BOARD_WRITER='ADMIN'
+			<trim prefix="AND (" suffix=")">
+				BOARD_DEL_AT ='N'
+			</trim>
+			<trim prefix="AND (" suffix=")">
+				<if test="searchMap!=null and @org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.searchWord)">
+					<choose>
+						<when test="searchMap.searchType eq 'title'">
+							INSTR(BOARD_TITLE, #{searchMap.searchWord}) > 0
+						</when>
+						<when test="searchMap.searchType eq 'writer'">
+							INSTR(BOARD_WRITER, #{searchMap.searchWord}) > 0
+						</when>
+						<when test="searchMap.searchType eq 'content'">
+							INSTR(BOARD_CN, #{searchMap.searchWord}) > 0
+						</when>
+						
+						<otherwise>
+							INSTR(BOARD_TITLE, #{searchMap.searchWord}) > 0
+							OR 
+							INSTR(BOARD_WRITER, #{searchMap.searchWord}) > 0
+							OR
+							INSTR(BOARD_CN, #{searchMap.searchWord}) > 0
+						
+						</otherwise>
+					</choose>
+				</if>
+			</trim>
+			<trim prefix="AND (" suffix=")" prefixOverrides="AND">
+				<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.minDate)">
+					AND BOARD_TIME >= TO_DATE(#{searchMap.minDate}, 'YYYY-MM-DD') 
+				</if>
+				<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.maxDate)">
+					<![CDATA[
+					AND BOARD_TIME <= TO_DATE(#{searchMap.maxDate}, 'YYYY-MM-DD')
+					]]> 
+				</if>
+			</trim>	
+		</trim>
+	</sql>
+		<select id="selectBoardCount" parameterType="PagingVO" resultType="int">
+		SELECT COUNT(*)
+		FROM TB_BOARD
+		<include refid="searchFrag"/>
+		
+		</select>
+
+
+		<select id="selectBoardList" resultType="BoardVO" parameterType="PagingVO">
+
+
+	
+	SELECT B.*
+		FROM (
+    SELECT A.*, ROWNUM RNUM
+			FROM(
+				SELECT BOARD_SEQ,HEAD_CODE, BOARD_TITLE                 
+				, BOARD_CN, BOARD_WRITER_TYCODE, BOARD_WRITER    
+				, BOARD_TIME,BOARD_HIT ,BOARD_SE_CODE,ATT_FILENO,BOARD_DEL_AT       
+				FROM TB_BOARD
+		
+				 <include refid="searchFrag"/> 
+				
+				ORDER BY BOARD_SEQ DESC)A
+                )B 
+                <![CDATA[
+          WHERE RNUM >= #{startRow} AND RNUM<= #{endRow}
+          AND BOARD_DEL_AT='N'
+          ]]>
+	</select>
+	
+
+	
+	<select id="selectBoard" parameterType="BoardVO" 
+		resultType="BoardVO">
+		SELECT
+		    BOARD_SEQ,  BOARD_TITLE                 
+				, BOARD_CN, BOARD_WRITER_TYCODE, BOARD_WRITER    
+				, BOARD_TIME,BOARD_HIT ,BOARD_SE_CODE       
+				FROM TB_BOARD
+		
+		WHERE BOARD_SEQ = #{board_seq}
+		
+		
+	</select>
+	
+	<update id="incrementHit" parameterType="int" >
+		UPDATE TB_BOARD
+		SET
+		BOARD_HIT = BOARD_HIT + 1
+		WHERE BOARD_SEQ = #{board_seq}
+	</update>
+	
+	<delete id="deleteBoard" parameterType="BoardVO">
+	
+		    UPDATE TB_BOARD
+		    SET 
+		    BOARD_TITLE = '삭제된 글의 제목'
+		    , BOARD_CN = '삭제된 글의 내용'
+		    , BOARD_DEL_AT = 'Y'
+		    WHERE BOARD_SEQ = #{board_seq}
+	</delete>
+	
+
+
+</mapper>
+

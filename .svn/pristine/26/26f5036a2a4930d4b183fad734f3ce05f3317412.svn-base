@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.fran.pos.dao.IPosMenuDAO">
+	<resultMap type="FranGoodsVO" id="franGoodsAttMap" autoMapping="true">
+		<id property="goods_code" column="GOODS_CODE"/>
+		<collection property="attachfileList" ofType="AttachfileVO" autoMapping="true">
+			<id property="att_seq" column="ATT_SEQ"/>
+		</collection>
+	</resultMap>
+	<select id="selectFranGoodsList" parameterType="FranGoodsVO" resultMap="franGoodsAttMap">
+		SELECT *
+		FROM
+		(
+			SELECT A.FRAN_CODE, B.*
+			FROM TB_FRANGOODS A INNER JOIN TB_HEADGOODS B ON A.GOODS_CODE = B.GOODS_CODE
+			WHERE HEAD_CODE = #{head_code} AND FRAN_CODE = #{fran_code} AND FRAN_GOODS_SALE_AT = 'Y' AND SALE_AT = 'Y'
+		) C LEFT OUTER JOIN TB_ATTACHFILE D ON C.ATT_FILENO = D.ATT_FILENO
+			INNER JOIN TB_COMCODE E ON C.GOODS_CL_CODE = E.COM_CODE
+		WHERE E.COM_CODE_GRP = 'GCC'	
+	</select>
+	
+	<select id="selectHeadGoodsList" parameterType="FranGoodsVO" resultMap="franGoodsAttMap">
+		SELECT *
+		FROM
+		(
+		    SELECT *
+		    FROM TB_HEADGOODS
+		    WHERE HEAD_CODE = #{head_code}
+		    AND GOODS_CODE NOT IN(
+		        SELECT GOODS_CODE
+		        FROM TB_FRANGOODS
+		        WHERE FRAN_CODE = #{fran_code} AND FRAN_GOODS_SALE_AT = 'Y'
+		    )
+		) A LEFT OUTER JOIN TB_ATTACHFILE B ON A.ATT_FILENO = B.ATT_FILENO
+			INNER JOIN TB_COMCODE C ON A.GOODS_CL_CODE = C.COM_CODE
+ 	   WHERE C.COM_CODE_GRP = 'GCC' AND SALE_AT = 'Y'
+	</select>
+	<select id="selectGoods" parameterType="FranGoodsVO" resultType="String">
+		SELECT FRAN_GOODS_SALE_AT
+		FROM TB_FRANGOODS
+		WHERE FRAN_CODE = #{fran_code} AND GOODS_CODE = #{goods_code}
+	</select>
+	<insert id="insertGoods" parameterType="FranGoodsVO">
+		INSERT INTO TB_FRANGOODS(
+		    GOODS_CODE,
+		    FRAN_CODE
+		)VALUES(
+		    #{goods_code},
+		    #{fran_code}
+		)
+	</insert>
+	<update id="updateGoods" parameterType="FranGoodsVO">
+		UPDATE TB_FRANGOODS
+		SET FRAN_GOODS_SALE_AT = 'Y'
+		WHERE FRAN_CODE = #{fran_code} AND GOODS_CODE = #{goods_code}
+	</update>
+	<delete id="deleteGoods" parameterType="FranGoodsVO">
+		UPDATE TB_FRANGOODS
+		SET FRAN_GOODS_SALE_AT = 'N'
+		WHERE FRAN_CODE = #{fran_code} AND GOODS_CODE = #{goods_code}
+	</delete>
+	<select id="selectGoodsDetail" parameterType="String" resultMap="franGoodsAttMap">
+		SELECT *
+		FROM TB_HEADGOODS LEFT OUTER JOIN TB_ATTACHFILE ON TB_HEADGOODS.ATT_FILENO = TB_ATTACHFILE.ATT_FILENO
+		     INNER JOIN TB_COMCODE  ON TB_HEADGOODS.GOODS_CL_CODE = TB_COMCODE.COM_CODE
+		WHERE GOODS_CODE = #{goods_code} AND TB_COMCODE.COM_CODE_GRP = 'GCC'	</select>
+</mapper>

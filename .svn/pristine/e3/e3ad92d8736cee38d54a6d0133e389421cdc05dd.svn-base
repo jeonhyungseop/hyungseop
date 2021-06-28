@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.head.franclose.dao.IFranCloseDao">
+	<update id="updateFranClose" parameterType="string">
+		UPDATE TB_FRANCHISE
+		SET FRAN_CLSBIZDE = TO_CHAR(SYSDATE, 'YYYYMMDD')
+		WHERE FRAN_CODE = #{code}
+	</update>
+	
+	<select id="selectClosingFranCount" parameterType="PagingVO" resultType="int">
+		SELECT COUNT(*)
+		FROM TB_FRANCHISE
+		WHERE HEAD_CODE = #{detailSearch.head_code}
+		AND FRAN_CLSBIZDE IS NOT NULL
+		<include refid="searchFrag"/>
+	</select>
+	
+	<sql id="searchFrag">
+		<trim prefix="AND (" suffix=")" prefixOverrides="AND">
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.searchComnm)">
+				AND	INSTR(FRAN_COMNM, #{searchMap.searchComnm}) > 0 
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.searchArea)">
+				AND	INSTR(FRAN_BAADD, #{searchMap.searchArea}) > 0 
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.startDate)">
+				AND FRAN_CLSBIZDE >= TO_DATE(#{searchMap.startDate}, 'YYYY-MM-DD') 
+			</if>
+			<if test="@org.apache.commons.lang3.StringUtils@isNotBlank(searchMap.endDate)">
+				<![CDATA[
+				AND FRAN_CLSBIZDE <= TO_DATE(#{searchMap.endDate}, 'YYYY-MM-DD')
+				]]> 
+			</if>
+		</trim>	
+	</sql>
+	
+	<select id="selectClosingFranList" parameterType="PagingVO" resultType="FranchiseVO">
+		SELECT B.* 
+		FROM(
+		      SELECT ROWNUM RNUM, A.* 
+		      FROM(
+		          SELECT
+	                    FRAN_CODE
+	                    , FRAN_COMNM
+	                    , FRAN_SRBDE
+                        , FRAN_OPENDE
+	                    , FRAN_CLSBIZDE
+	                    , FN_CODENAME('FRAN_STTUS_CODE', FRAN_STTUS_CODE) FRAN_STTUS_CODE
+	                    , FRAN_ID
+	                    , FRAN_ZIPNO
+	                    , SUBSTR(FRAN_BAADD,0,2) FRAN_AREA
+	                    , FRAN_BAADD, NVL(FRAN_DEADD, ' ') FRAN_DEADD
+	                    , FN_CODENAME('FRAN_SE_CODE', FRAN_SE_CODE) FRAN_SE_CODE
+	                    , FRAN_LATI
+	                    , FRAN_LOTI
+	                    , FRAN_TELNO
+	                    , FOWNER_NM
+	                    , FOWNER_CELNO
+	                    , FOWNER_EMAIL
+	                    , FRAN_BIZRNO
+	                    , ATT_FILENO
+		          FROM TB_FRANCHISE
+		          WHERE HEAD_CODE = #{detailSearch.head_code}
+		          AND FRAN_CLSBIZDE IS NOT NULL
+		          <include refid="searchFrag" />
+		          ORDER BY FRAN_CLSBIZDE DESC
+	            ) A
+	        )B
+		   <![CDATA[
+    		WHERE RNUM >= #{startRow} AND RNUM <= ${endRow}
+    		]]>
+	</select>
+</mapper>

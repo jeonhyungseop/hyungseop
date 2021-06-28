@@ -1,0 +1,95 @@
+package kr.or.ddit.cfms.head.dayreport.dao;
+
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.stereotype.Repository;
+
+import kr.or.ddit.cfms.fran.commons.vo.FranchiseVO;
+import kr.or.ddit.cfms.head.dayreport.vo.CustomerorderVO;
+import kr.or.ddit.cfms.head.dayreport.vo.SaleVO;
+
+/**
+ * @author 배수진
+ * @since 2021. 6. 11
+ * @version 1.0
+ * @see javax.servlet.http.HttpServlet
+ * <pre>
+ * [[개정이력(Modification Information)]]
+ * 수정일                          수정자               수정내용
+ * --------     --------    ----------------------
+ * 2021. 6. 11      배수진       최초작성
+ * Copyright (c) 2021 by DDIT All right reserved
+ * </pre>
+ */
+@Repository
+public interface IHeadDayReportDAO { 
+	
+	
+	/**
+	 * @param franchiseVO
+	 * @return List<FranchiseVO>
+	 * 해당 가맹본부의 가맹점 조회
+	 */
+	public List<FranchiseVO> selectFranchiseList(Map<String, String> params);
+	
+	
+	/**
+	 * @param params
+	 * @return List<CustomerorderVO>
+	 * 가맹점 별 매출 판매 리스트
+	 */
+	public List<CustomerorderVO> selectDaySaleList(Map<String, String> params); 
+	
+	/**
+	 * @param params
+	 * @return List<CustomerorderVO>
+	 * 단일 가맹점 한달 매출 리스트
+	 */
+	public List<CustomerorderVO> selectDaySaleByFranList(Map<String, String> params);  
+	
+	/**
+	 * @param head_code
+	 * @return int
+	 * 가맹점의 총 일일 매출 합계
+	 */
+	public int selectDayTotalSale(String head_code); 
+	
+	/**
+	 * @param head_code
+	 * @return
+	 * 가맹점의 한달 매출 합계
+	 */
+	public int selectMonthTotalSale(String head_code);
+	
+	/**
+	 * @param head_code
+	 * @return double
+	 * 가맹점의 목표금액 달성 률 조회
+	 */
+	public double selectStatisticsSale(String head_code);
+	
+	/**
+	 * @param head_code
+	 * @return String
+	 * 현재 달의 실적 우수 지점 조회
+	 */
+	public String selectTopFranchise(String head_code);
+	
+	
+	/**
+	 * @param head_code
+	 * @return String
+	 * 현재 달의 관리 대상 지점 조회
+	 */
+	public String selectEndFranshise(String head_code);
+	
+	/**
+	 * @param head_code
+	 * @return SaleVO
+	 * 현재 달의 지역별 매출 금액
+	 */
+	public List<SaleVO> selectAreaTotalSale(String head_code);
+
+	
+}

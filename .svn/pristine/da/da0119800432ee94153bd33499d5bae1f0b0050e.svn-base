@@ -1,0 +1,228 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="kr.or.ddit.cfms.head.dayreport.dao.IHeadDayReportDAO">
+
+	<!-- 가맹점 리스트 조회 -->
+	<select id="selectFranchiseList" parameterType="map" resultType="FranchiseVO">
+		/*kr.or.ddit.cfms.head.dayreport.dao.IHeadDayReportDAO.selectFranchiseList */
+		SELECT
+		    FRAN_CODE,
+		    HEAD_CODE,
+		    BIZRNO,
+		    FRAN_COMNM,
+		    FRAN_SRBDE,
+		    FRAN_OPENDE,
+		    FRAN_CLSBIZDE,
+		    FRAN_STTUS_CODE,
+		    FRAN_ID,
+		    FRAN_PASS,
+		    FRAN_ZIPNO,
+		    FRAN_BAADD,
+		    FRAN_DEADD,
+		    FRAN_SE_CODE,
+		    FRAN_LATI,
+		    FRAN_LOTI,
+		    FRAN_TELNO,
+		    FOWNER_NM,
+		    FOWNER_CELNO,
+		    FOWNER_BIRTDAY,
+		    FOWNER_EMAIL,
+		    PIN_NO,
+		    AUTH_PASS,
+		    FRAN_BIZRNO,
+		    ATT_FILENO
+		FROM
+		    TB_FRANCHISE
+		WHERE
+		    HEAD_CODE = #{headCode}
+		<if	test="@org.apache.commons.lang3.StringUtils@isNotBlank(franNm)">
+			AND INSTR(FRAN_COMNM, #{franNm}) > 0
+		</if>
+		ORDER BY FRAN_CODE
+	</select>
+	
+	<resultMap type="CustomerorderVO" id="custom" autoMapping="true">
+		<id property="cord_code" column="CORD_CODE"/>
+			<collection property="saleList" ofType="SaleVO" autoMapping="true">
+				<id property="cord_code" column="CORD_CODE"/>
+			</collection>
+	</resultMap>
+	
+	<!-- 가맹점 별 하루 판매 총액 조회 -->
+	<select id="selectDaySaleList" parameterType="Map" resultMap="custom">
+		/*kr.or.ddit.cfms.head.dayreport.dao.IHeadDayReportDAO.selectDaySaleList */
+		SELECT DISTINCT  A.FRAN_CODE FRAN_CODE,  
+              A. FRAN_COMNM FRAN_COMNM,
+              NVL(SUM(C.ORDPAY_MONEY) OVER (PARTITION BY A.FRAN_CODE),0)  TOTAL_ORDMONEY,
+              (NVL(D.TARGET_MONEY,0)/(SELECT ROUND(LAST_DAY(sysdate) -TRUNC(sysdate,'MM') )FROM DUAL)) TARGET_MONEY
+		FROM TB_FRANCHISE A LEFT OUTER JOIN TB_CUSTOMERORDER B
+            ON A.FRAN_CODE = B.FRAN_CODE
+            LEFT OUTER JOIN (
+                SELECT *
+                FROM TB_SALE
+                WHERE PAY_STTUS_CODE = 'A0001'
+                AND TO_CHAR(ORDPAY_TIME, 'YYYYMMDD') = TO_CHAR(SYSDATE-1,'YYYYMMDD')
+                ) C 
+            ON B.CORD_CODE = C.CORD_CODE
+            LEFT OUTER JOIN (
+                SELECT FRAN_CODE, TARGET_MONEY
+                FROM TB_TARGET
+                <![CDATA[
+                WHERE (TARGET_BASE_YEAR||(CASE WHEN TARGET_BASE_MONTH <10 THEN '0'||TARGET_BASE_MONTH ELSE TARGET_BASE_MONTH END)) =TO_CHAR(SYSDATE,'YYYYMM')
+                ]]>
+                ) D
+            ON A.FRAN_CODE = D.FRAN_CODE    
+		WHERE A.HEAD_CODE = 'HTC01'
+		ORDER BY FRAN_CODE
+	</select>
+	
+	<!-- 단일 가맹점 한달 일일 매출 조회 -->
+	<select id="selectDaySaleByFranList" parameterType="Map" resultType="CustomerorderVO">
+		/*kr.or.ddit.cfms.head.dayreport.dao.IHeadDayReportDAO.selectDaySaleByFranList */
+		SELECT TO_CHAR(C.DT,'YYYYMMDD') DAYS, NVL(SALESUM,0) TOTAL_ORDMONEY
+		FROM V_PRESYSDATE30 C LEFT OUTER JOIN  
+		            (
+		                SELECT TO_CHAR(A.ORDPAY_TIME,'YYYYMMDD' ) SALEDAY, SUM(A.ORDPAY_MONEY) SALESUM
+		                FROM TB_SALE A LEFT OUTER JOIN TB_CUSTOMERORDER B
+		                            ON A.CORD_CODE = B.CORD_CODE
+		                WHERE B.FRAN_CODE = #{franCode}
+		                      AND A.PAY_STTUS_CODE = 'A0001'
+		                GROUP BY TO_CHAR(A.ORDPAY_TIME,'YYYYMMDD' )
+		            ) D
+		             ON TO_CHAR(C.DT,'YYYYMMDD') = D.SALEDAY
+		ORDER BY TO_CHAR(C.DT,'YYYYMMDD')
+	</select>
+
+
+	<!-- 가맹점 일일 매출 총 합계 조회 -->
+	<select id="selectDayTotalSale" parameterType="String" resultType="int">
+		/*kr.or.ddit.cfms.head.dayreport.dao.IHeadDayReportDAO.selectDayTotalSale */
+		SELECT NVL(SUM(A.ORDPAY_MONEY),0)
+		FROM TB_SALE A LEFT OUTER JOIN TB_CUSTOMERORDER B
+		            ON A.CORD_CODE = B.CORD_CODE
+		WHERE TO_CHAR(A.ORDPAY_TIME,'YYYYMMDD') = TO_CHAR(SYSDATE-1,'YYYYMMDD')
+		              AND A.PAY_STTUS_CODE = 'A0001'
+		              AND SUBSTR(B.FRAN_CODE,0,5) = #{headCode}
+	</select>
+	
+	<!-- 가맹점 한달 매출 총 합계 조회 -->
+	<select id="selectMonthTotalSale" parameterType="String" resultType="int">
+		/*kr.or.ddit.cfms.head.dayreport.dao.IHeadDayReportDAO.selectMonthTotalSale */
+		SELECT SUM(A.ORDPAY_MONEY)
+		FROM TB_SALE A LEFT OUTER JOIN TB_CUSTOMERORDER B
+		            ON A.CORD_CODE = B.CORD_CODE
+		WHERE TO_CHAR(A.ORDPAY_TIME,'YYYYMMDD') BETWEEN (TO_CHAR(SYSDATE,'YYYYMM')||'01') AND TO_CHAR(LAST_DAY(SYSDATE),'YYYYMMDD')
+		              AND A.PAY_STTUS_CODE = 'A0001'
+		              AND SUBSTR(B.FRAN_CODE,0,5) = #{headCode}
+	</select>
+	
+	<!-- 가맹점 목표금액 달성률 조회 -->
+	<select id="selectStatisticsSale" parameterType="String" resultType="Double">
+		/*kr.or.ddit.cfms.head.dayreport.dao.IHeadDayReportDAO.selectStatisticsSale */
+		SELECT 
+		    ROUND(
+		        (
+		        SELECT SUM(A.ORDPAY_MONEY)
+		        FROM TB_SALE A LEFT OUTER JOIN TB_CUSTOMERORDER B
+		                    ON A.CORD_CODE = B.CORD_CODE
+		        WHERE TO_CHAR(A.ORDPAY_TIME,'YYYYMMDD') BETWEEN (TO_CHAR(SYSDATE,'YYYYMM')||'01') AND TO_CHAR(LAST_DAY(SYSDATE),'YYYYMMDD')
+		                      AND A.PAY_STTUS_CODE = 'A0001'
+		                      AND SUBSTR(B.FRAN_CODE,0,5) = #{headCode}
+		        ) /
+		        (
+		        SELECT SUM(TARGET_MONEY)
+		        FROM TB_TARGET
+		        <![CDATA[
+		        WHERE  (TARGET_BASE_YEAR||(CASE WHEN TARGET_BASE_MONTH <10 THEN '0'||TARGET_BASE_MONTH ELSE TARGET_BASE_MONTH END)) =TO_CHAR(SYSDATE,'YYYYMM')
+		                       AND SUBSTR(FRAN_CODE,0,5) = #{headCode}
+		        ]]>
+		        ) * 100, 3 
+		    )AVG
+		FROM DUAL
+	</select>
+	
+	<!-- 이 달 매출 우수 가맹점 조회 -->
+	<select id="selectTopFranchise" parameterType="String" resultType="String">
+		/*kr.or.ddit.cfms.head.dayreport.dao.IHeadDayReportDAO.selectTopFranchise */
+		SELECT FRAN_COMNM
+			FROM
+			(
+		        SELECT
+		            FRAN_CODE, FRAN_COMNM, SALEMONEY,
+		            ROW_NUMBER() OVER (ORDER BY SALEMONEY DESC) SALEMONEY_RANK
+		        FROM
+		                (
+		                    SELECT B.FRAN_CODE, C.FRAN_COMNM, SUM(A.ORDPAY_MONEY) SALEMONEY
+		                    FROM TB_SALE A LEFT OUTER JOIN TB_CUSTOMERORDER B
+		                                ON A.CORD_CODE = B.CORD_CODE
+		                                LEFT OUTER JOIN TB_FRANCHISE C
+		                                ON B.FRAN_CODE = C.FRAN_CODE
+		                    WHERE TO_CHAR(ORDPAY_TIME,'YYYYMMDD') BETWEEN (TO_CHAR(SYSDATE,'YYYYMM')||'01') AND TO_CHAR(LAST_DAY(SYSDATE),'YYYYMMDD')
+		                                   AND A.PAY_STTUS_CODE = 'A0001'
+		                                   AND SUBSTR(B.FRAN_CODE,0,5) = #{headCode}
+		                    GROUP BY B.FRAN_CODE, C.FRAN_COMNM
+		                    ORDER BY B.FRAN_CODE
+		                )
+		        )
+			WHERE SALEMONEY_RANK = 1
+	</select>
+	
+	<!-- 이 달 관리 대상 가맹점 조회  -->
+	<select id="selectEndFranshise" parameterType="String" resultType="String">
+		/*kr.or.ddit.cfms.head.dayreport.dao.IHeadDayReportDAO.selectEndFranshise */
+		SELECT FRAN_COMNM
+		FROM
+		(
+	        SELECT
+	            FRAN_CODE, FRAN_COMNM, SALEMONEY,
+	            ROW_NUMBER() OVER (ORDER BY SALEMONEY) SALEMONEY_RANK
+	        FROM
+	                (
+	                    SELECT C.FRAN_CODE, C.FRAN_COMNM, SUM(NVL(A.ORDPAY_MONEY,0)) SALEMONEY
+	                    FROM (SELECT CORD_CODE,ORDPAY_MONEY 
+	                                FROM TB_SALE 
+	                                WHERE TO_CHAR(ORDPAY_TIME,'YYYYMMDD') BETWEEN (TO_CHAR(SYSDATE,'YYYYMM')||'01') AND TO_CHAR(LAST_DAY(SYSDATE),'YYYYMMDD')
+	                                               AND PAY_STTUS_CODE = 'A0001'
+	                                ) A LEFT OUTER JOIN TB_CUSTOMERORDER B
+	                                ON A.CORD_CODE = B.CORD_CODE
+	                                RIGHT OUTER JOIN (SELECT FRAN_CODE, FRAN_COMNM FROM TB_FRANCHISE WHERE SUBSTR(FRAN_CODE,0,5) = #{headCode}) C
+	                                ON B.FRAN_CODE = C.FRAN_CODE
+	                    GROUP BY C.FRAN_CODE, C.FRAN_COMNM
+	                    ORDER BY C.FRAN_CODE
+	                )
+		        )
+		WHERE SALEMONEY_RANK = 1
+	</select>
+	
+	<!-- 이 달 지역별 매출합계 조회 -->
+	<select id="selectAreaTotalSale" parameterType="String" resultType="SaleVO">
+		/*kr.or.ddit.cfms.head.dayreport.dao.IHeadDayReportDAO.selectAreaTotalSale */
+		SELECT FRAN_AREA, SUM(ORDPAY_MONEY) AREA_MONEY
+		FROM (
+		        SELECT SUBSTR(FRAN_BAADD,0,2) FRAN_AREA, FRAN_CODE
+		        FROM TB_FRANCHISE
+		        WHERE HEAD_CODE = #{headCode}
+		    ) A 
+		    LEFT OUTER JOIN (
+		        SELECT C.ORDPAY_MONEY, D.FRAN_CODE
+		        FROM TB_SALE C LEFT OUTER JOIN TB_CUSTOMERORDER D
+		                    ON C.CORD_CODE = D.CORD_CODE
+		        WHERE TO_CHAR(C.ORDPAY_TIME,'YYYYMMDD') BETWEEN (TO_CHAR(SYSDATE,'YYYYMM')||'01') AND TO_CHAR(LAST_DAY(SYSDATE),'YYYYMMDD')
+		    ) B
+		    ON A.FRAN_CODE = B.FRAN_CODE
+		GROUP BY FRAN_AREA
+		
+	</select>
+
+</mapper>
+
+
+
+
+
+
+
+
+
+
+
